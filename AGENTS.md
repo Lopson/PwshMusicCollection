@@ -16,6 +16,7 @@ This project depends on the following .NET assemblies:
 - `/CueParser`: Contains the source code for the PowerShell module in charge of parsing Cue sheets.
 - `/M3UParser`: Contains the source code for the PowerShell module in charge of parsing M3U playlists.
 - `/MediaTagHandler`: Contains the source code for the PowerShell module in charge of reading and writing media file metadata tags.
+- `/MusicCollectionHelper`: Contains all of the functions that are actually used in the process of managing a music collection. It relies on the three modules present in this repository.
 
 You may be running in the actual "Modules" folder of a user's profile instead of a regular source code repository. This can be determined by checking if the parent folder of the root of the project is named "Powershell". If that's the case, ignore all other folders at the root of the project as they will contain irrelevant PowerShell modules.
 
