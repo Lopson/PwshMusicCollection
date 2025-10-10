@@ -40,10 +40,13 @@ function Publish-Modules {
                 Test-Path -LiteralPath $_ -PathType Container; },
             ErrorMessage = "Literal Path `"{0}`" doesn't seem to exist."
         )]
-        [string]$LiteralPath
+        [string]$LiteralPath,
+
+        [switch]$DryRun = $false
     )
 
-    [string]$PwshProfilePath = Split-Path $PROFILE.CurrentUserCurrentHost -Parent;
+    [string]$PwshProfilePath = Join-Path (Split-Path $PROFILE.CurrentUserCurrentHost `
+            -Parent) "Modules";
     switch ($PSCmdlet.ParameterSetName) {
         "Path" {
             if ($Path -and -not [string]::IsNullOrWhiteSpace($Path)) {
@@ -92,13 +95,25 @@ function Publish-Modules {
 
     # Copy the modules over to the user's Powershell profile.
     foreach ($moduleName in $MODULE_NAMES) {
+        [string]$modulePath = (Join-Path $PwshProfilePath $moduleName);
+        [bool]$moduleExists = Test-Path -LiteralPath $modulePath;
+        if ($moduleExists) {
+            Write-Warning "Module $moduleName already exists, will be overwritten!";
+        }
+
         Write-Verbose "Copying module $moduleName";
-        Copy-Item -Force -Recurse -LiteralPath ".\$moduleName" -Destination `
-            $PwshProfilePath
+        if (-not $DryRun) {
+            if ($moduleExists) {
+                Remove-Item -LiteralPath $modulePath -Confirm $false;
+                Write-Verbose "Deleting existing copy of module $moduleName";
+            }
+            Copy-Item -Force -Recurse -LiteralPath ".\$moduleName" -Destination `
+                $PwshProfilePath -Confirm $false;
+        }
         Write-Verbose "Done copying module $moduleName";
     }
 
     Write-Verbose "Modules have been installed on local system";
 }
 
-Publish-Modules -Verbose;
+Publish-Modules -Verbose -DryRun;
