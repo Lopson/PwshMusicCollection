@@ -49,7 +49,7 @@ PowerShellVersion = '7.5'
 # RequiredModules = @()
 
 # Assemblies that must be loaded prior to importing this module
-RequiredAssemblies = @('Assemblies\netstandard2.0\TagLibSharp.dll')
+RequiredAssemblies = @('Assemblies\TagLibSharp.dll')
 
 # Script files (.ps1) that are run in the caller's environment prior to
 # importing this module
