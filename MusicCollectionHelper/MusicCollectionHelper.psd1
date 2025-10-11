@@ -78,7 +78,8 @@ FunctionsToExport = @(
     'Update-AlbumTags',
     'New-M3U8File',
     'Convert-CUEtoM3U8',
-    'Split-SACDISOToDSF'
+    'Split-SACDISOToDSF',
+    'Test-MediaFileCover'
 )
 
 # Cmdlets to export from this module, for best performance, do not use
