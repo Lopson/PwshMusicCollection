@@ -117,6 +117,9 @@ function Publish-Modules {
                     "of module $moduleName");
                 
                 [string]$dllPath = Join-Path $modulePath "Assemblies";
+                if (-not (Test-Path -LiteralPath $dllPath -PathType Container)) {
+                    [void](New-Item -ItemType Directory -Path $dllPath);
+                }
                 Get-NuGetPackageDLLs -OutputPath $dllPath -PackageName `
                     $requirement.PackageName -Version $requirement.Version `
                     -TargetFramework $requirement.TargetFramework;
