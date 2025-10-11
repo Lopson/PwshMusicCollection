@@ -42,6 +42,8 @@ function Get-M3UPlaylist {
         $normalizedComments += $normalizedComment;
     }
     $playlist.Comments = $normalizedComments;
+    $playlist.Path = $M3UPlaylistPath.DirectoryName;
+    $playlist.FileName = $M3UPlaylistPath.Name;
 
     return $playlist;
 }
