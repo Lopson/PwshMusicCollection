@@ -51,7 +51,7 @@ function Test-MusicFileTags {
         if ([string]::IsNullOrWhiteSpace($tagValue)) {
             Write-Warning ("File $MusicFilePath, release year tag is empty");
         }
-        if (-not ([datetime]::TryParseExact(
+        elseif (-not ([datetime]::TryParseExact(
                     $tagValue,
                     "yyyy",
                     [CultureInfo]::InvariantCulture,
@@ -68,7 +68,7 @@ function Test-MusicFileTags {
         if ([string]::IsNullOrWhiteSpace($tagValue)) {
             Write-Warning ("File $MusicFilePath, release country tag is empty");
         }
-        if ($tagValue -notin [Valid3LetterCountryCodes]::new().GetValidValues()) {
+        elseif ($tagValue -notin [Valid3LetterCountryCodes]::new().GetValidValues()) {
             if (($tagValue -split ",").Length -eq 2) {
                 Write-Warning ("File $MusicFilePath, possible old-format " +
                     "country tag found, consider replacing it with a " +
