@@ -193,7 +193,7 @@ function New-M3U8File {
         }
         else {
             $ExtFileEntry = New-M3UPlaylistEntry `
-                -Path $ExtFile `
+                -LiteralPath $ExtFile `
                 -TrackTitle "$($Performer -join ", ") - $TrackTitle" `
                 -TrackLength $TrackLength
         }

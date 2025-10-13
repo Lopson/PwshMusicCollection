@@ -83,7 +83,17 @@ function Rename-MusicFile {
                 $TrackNumber = "0$TrackNumber";
             }
 
-            $file | Rename-Item -NewName "$TrackNumber. $TrackTitle$($file.Extension)";
+            [string]$newName = "$TrackNumber. $TrackTitle$($file.Extension)".Split(
+                [System.IO.Path]::GetInvalidFileNameChars()) -join "_";
+            
+            if ((Test-Path -Path $newName) -or
+                (Test-Path -LiteralPath $newName)) {
+                throw [System.FieldAccessException] (
+                    "File with name $newName already exists");
+            }
+            else {
+                $file | Rename-Item -NewName $newName;
+            }
         }
     }
 }
