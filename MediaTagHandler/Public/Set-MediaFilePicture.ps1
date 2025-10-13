@@ -53,20 +53,9 @@ function Set-MediaFilePicture {
                     $MediaFile.Tag.Pictures += $Picture;
                 }
                 else {
-                    [bool]$coverSet = $false;
-                    
-                    for ($i = 0; $i -lt $MediaFile.Tag.Pictures.Length; $i++) {
-                        if ($MediaFile.Tag.Pictures[$i].Type -eq $PictureType) {
-                            $MediaFile.Tag.Pictures[$i] = $Picture;
-                            $coverSet = $true;
-                            break;
-                        }
-                    }
-                    
-                    if (-not $coverSet) {
-                        $MediaFile.Tag.Pictures += $Picture;
-                        $coverSet = $true;
-                    }
+                    $MediaFile.Tag.Pictures = $MediaFile.Tag.Pictures | `
+                        Where-Object { $_.Type -ne $PictureType };
+                    $MediaFile.Tag.Pictures += $Picture;
                 }
             }
         }
