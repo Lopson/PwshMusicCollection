@@ -34,8 +34,8 @@ function Set-MediaFileCover {
                 [string]$MediaFileFolder = (Get-Item -Path $Path).DirectoryName;
             }
             "LiteralPath" {
-                $MediaFile = Get-MediaFile -Path $LiteralPath;
-                [string]$MediaFileFolder = (Get-Item -Path $LiteralPath).DirectoryName;
+                $MediaFile = Get-MediaFile -LiteralPath $LiteralPath;
+                [string]$MediaFileFolder = (Get-Item -LiteralPath $LiteralPath).DirectoryName;
             }
         }
 
