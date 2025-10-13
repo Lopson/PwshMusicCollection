@@ -56,7 +56,7 @@ function Set-MediaFilePicture {
                     [bool]$coverSet = $false;
                     
                     for ($i = 0; $i -lt $MediaFile.Tag.Pictures.Length; $i++) {
-                        if ($MediaFile.Tag.Pictures[$i] -eq $PictureType) {
+                        if ($MediaFile.Tag.Pictures[$i].Type -eq $PictureType) {
                             $MediaFile.Tag.Pictures[$i] = $Picture;
                             $coverSet = $true;
                             break;
