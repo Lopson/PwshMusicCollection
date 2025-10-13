@@ -33,7 +33,7 @@ function Test-MediaFileCover {
                 $MediaFile = Get-MediaFile -Path $Path;
             }
             "LiteralPath" {
-                $MediaFile = Get-MediaFile -Path $LiteralPath;
+                $MediaFile = Get-MediaFile -LiteralPath $LiteralPath;
             }
         }
 

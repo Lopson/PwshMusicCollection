@@ -33,7 +33,7 @@ function Test-MusicFileTags {
                 [string]$MusicFilePath = $Path;
             }
             "LiteralPath" {
-                $MusicFile = Get-MediaFile -Path $LiteralPath;
+                $MusicFile = Get-MediaFile -LiteralPath $LiteralPath;
                 [string]$MusicFilePath = $LiteralPath;
             }
         }
