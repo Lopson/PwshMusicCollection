@@ -24,6 +24,7 @@ $ExportableClasses = @(
     'ValidTags',
     'ValidExtensions',
     'ValidAudioExtensions',
+    'ValidImageExtensions',
     'Valid3LetterCountryCodes'
 )
 

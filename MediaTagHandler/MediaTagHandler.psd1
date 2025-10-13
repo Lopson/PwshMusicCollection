@@ -75,6 +75,7 @@ FunctionsToExport = @(
     'Get-MediaTagTypes',
     'Set-MediaFileCustomTag',
     'Set-MediaFileTag',
+    'Set-MediaFilePicture',
     'Clear-MediaFileTag')
 
 # Cmdlets to export from this module, for best performance, do not use
