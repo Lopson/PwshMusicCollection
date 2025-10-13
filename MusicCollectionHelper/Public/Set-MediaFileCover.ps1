@@ -1,4 +1,4 @@
-function Set-MusicFileCover {
+function Set-MediaFileCover {
     [CmdletBinding(DefaultParameterSetName = "Path")]
     [OutputType([void])]
     param (
