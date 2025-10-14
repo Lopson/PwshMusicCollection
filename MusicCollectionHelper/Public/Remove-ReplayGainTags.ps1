@@ -30,11 +30,9 @@ function Remove-ReplayGainTags {
         switch ($PSCmdlet.ParameterSetName) {
             "Path" {
                 $MusicFile = Get-MediaFile -Path $Path;
-                [string]$MusicFilePath = $Path;
             }
             "LiteralPath" {
                 $MusicFile = Get-MediaFile -LiteralPath $LiteralPath;
-                [string]$MusicFilePath = $LiteralPath;
             }
         }
 
