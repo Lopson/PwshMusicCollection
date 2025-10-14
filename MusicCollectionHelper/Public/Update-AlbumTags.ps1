@@ -95,6 +95,23 @@ function Update-AlbumTags {
             }
         }
 
+        # Reformat the disc count and number fields.
+        $discCount = Get-MediaFileTag -MediaFile $MusicFile `
+            -MediaTag "DiscCount";
+        $discNumber = Get-MediaFileTag -MediaFile $MusicFile `
+            -MediaTag "Disc";
+
+        if ($discCount -and $discCount -le 0) {
+            Set-MediaFileTag -MediaFile $musicFile -MediaTag "DiscCount" `
+                -MediaTagValue $null -Save $false;
+        }
+        elseif ($discNumber -and $discCount -eq 1) {
+            Set-MediaFileTag -MediaFile $musicFile -MediaTag "DiscCount" `
+                -MediaTagValue $null -Save $false;
+            Set-MediaFileTag -MediaFile $musicFile -MediaTag "Disc" `
+                -MediaTagValue $null -Save $false;
+        }
+
         # Deal with the standard data fields.
         foreach ($param in `
             @("Genre", "ReleaseYear", "ReleaseCountry", "Performer", "Title") | Where-Object {
@@ -109,7 +126,12 @@ function Update-AlbumTags {
                 }
 
                 "ReleaseYear" {
-                    if ((Get-MediaTagTypes -MediaFile $musicFile) -contains "Xiph") {
+                    # NOTE In order to see if a given enum value is in a OR'd
+                    # composite value, one must do (thisInstance & flag) == flag
+                    # https://learn.microsoft.com/en-us/dotnet/api/system.enum.hasflag?view=net-9.0#remarks
+                    
+                    if (((Get-MediaTagTypes -MediaFile $musicFile) -band
+                            [TagLib.TagTypes]::Xiph) -eq [TagLib.TagTypes]::Xiph) {
                         Set-MediaFileCustomTag -MediaFile $musicFile `
                             -MediaTag "DATE" -MediaTagType "Xiph" `
                             -MediaTagValue $paramValue -Save $false;

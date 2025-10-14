@@ -6,19 +6,13 @@ function Set-MediaFileCustomTag {
             Position = 0)]
         $MediaFile,
         
-        [Parameter(Mandatory = $true, ParameterSetName = "Path")]
-        [Parameter(Mandatory = $true, ParameterSetName = "LiteralPath")]
-        [ValidateNotNullOrEmpty()]
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNullOrWhiteSpace()]
         [string]$MediaTag,
 
-        [Parameter(Mandatory = $true, ParameterSetName = "Path")]
-        [Parameter(Mandatory = $true, ParameterSetName = "LiteralPath")]
-        [ValidateSet([ValidTagTypes])]
-        [ValidateNotNullOrEmpty()]
-        [string]$MediaTagType,
+        [Parameter(Mandatory = $true)]
+        [TagLib.TagTypes]$MediaTagType,
 
-        [Parameter(Mandatory = $true, ParameterSetName = "Path")]
-        [Parameter(Mandatory = $true, ParameterSetName = "LiteralPath")]
         $MediaTagValue,
 
         [bool]$Save = $true,
@@ -29,7 +23,7 @@ function Set-MediaFileCustomTag {
     process {
         Test-MediaFile -MediaFile $MediaFile;
 
-        $CustomTags = $Tags.GetTag($MediaTagType);
+        $CustomTags = $MediaFile.GetTag($MediaTagType);
 
         if ($Force -or ($CustomTags.GetField($MediaTag) -ne $MediaTagValue)) {
             $CustomTags.SetField($MediaTag, $MediaTagValue);
