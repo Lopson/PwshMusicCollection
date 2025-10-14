@@ -26,7 +26,8 @@ function Set-MusicFileTrackCount {
         [ValidateNotNullOrEmpty()]
         [string]$LiteralPath,
 
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $true, ParameterSetName = "Path")]
+        [Parameter(Mandatory = $true, ParameterSetName = "LiteralPath")]
         [ValidateNotNull()]
         [ValidateRange(1, [int]::MaxValue)]
         [int]$TotalTracks
