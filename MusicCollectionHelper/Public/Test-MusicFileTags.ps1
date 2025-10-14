@@ -104,5 +104,21 @@ function Test-MusicFileTags {
             Write-Warning (
                 "File $MusicFilePath, album performer tag is empty");
         }
+
+        # Check for ReplayGain tags.
+        [string[]]$replayTags = @();
+        foreach ($replayTag in @("ReplayGainTrackGain", "ReplayGainTrackPeak",
+                "ReplayGainAlbumGain", "ReplayGainAlbumPeak")) {
+            $tagValue = Get-MediaFileTag -MediaFile $MusicFile `
+                -MediaTag $replayTag;
+            
+            if ($tagValue) {
+                $replayTags += $replayTag;
+            }
+        }
+        if ($replayTags -and $replayTags.Length -gt 0) {
+            Write-Warning "File $MusicFilePath, ReplayGain tags detected: $(`
+            $replayTags -join ", ")";
+        }
     }
 }
