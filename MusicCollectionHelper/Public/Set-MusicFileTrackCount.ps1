@@ -24,18 +24,13 @@ function Set-MusicFileTrackCount {
             ErrorMessage = "Literal Path `"{0}`" doesn't seem to exist."
         )]
         [ValidateNotNullOrEmpty()]
-        [string]$LiteralPath
+        [string]$LiteralPath,
+
+        [Parameter(Mandatory = $true)]
+        [ValidateNotNull()]
+        [ValidateRange(1, [int]::MaxValue)]
+        [int]$TotalTracks
     )
-    begin {
-        switch ($PSCmdlet.ParameterSetName) {
-            "Path" {
-                $totalTracks = $Path.Length;
-            }
-            "LiteralPath" {
-                $totalTracks = $LiteralPath.Length;
-            }
-        }
-    }
     process {
         switch ($PSCmdlet.ParameterSetName) {
             "Path" {
@@ -47,6 +42,6 @@ function Set-MusicFileTrackCount {
         }
 
         Set-MediaFileTag -MediaFile $MusicFile -MediaTag "TrackCount" `
-            -MediaTagValue $totalTracks;
+            -MediaTagValue $TotalTracks;
     }
 }
