@@ -43,7 +43,7 @@ function Remove-ReplayGainTags {
                 -MediaTag $replayTag;
             
             if (-not [string]::IsNullOrWhiteSpace($tagValue) -and `
-                    $tagValue -ne "NaN") {
+                    -not [double]::IsNaN($tagValue)) {
                 Set-MediaFileTag -MediaFile $MusicFile -MediaTag $replayTag `
                     -MediaTagValue [double]::NaN -Save $false;
             }

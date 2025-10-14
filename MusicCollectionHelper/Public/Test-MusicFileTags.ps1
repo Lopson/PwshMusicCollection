@@ -132,7 +132,7 @@ function Test-MusicFileTags {
                 -MediaTag $replayTag;
             
             if (-not [string]::IsNullOrWhiteSpace($tagValue) -and `
-                    $tagValue -ne "NaN") {
+                    -not [double]::IsNaN($tagValue)) {
                 $replayTags += $replayTag;
             }
         }
