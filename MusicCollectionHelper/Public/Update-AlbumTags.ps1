@@ -78,7 +78,24 @@ function Update-AlbumTags {
         
         # Write-Progress -Activity "Updating metadata of file $((Get-Item -LiteralPath $file).BaseName)" `
         #     -Status "$i% Complete:" -PercentComplete (($i / $MusicFiles.Length) * 100);
-        
+
+        # Set the Track Count field.
+        Set-MediaFileTag -MediaFile $musicFile -MediaTag "TrackCount" `
+            -MediaTagValue $MusicFiles.Length -Save $false;
+
+        # Clear out the ReplayGain fields.
+        foreach ($replayTag in @("ReplayGainTrackGain", "ReplayGainTrackPeak",
+                "ReplayGainAlbumGain", "ReplayGainAlbumPeak")) {
+            $tagValue = Get-MediaFileTag -MediaFile $musicFile `
+                -MediaTag $replayTag;
+            
+            if ($tagValue) {
+                Set-MediaFileTag -MediaFile $musicFile -MediaTag $replayTag `
+                    -MediaTagValue $null -Save $false;
+            }
+        }
+
+        # Deal with the standard data fields.
         foreach ($param in `
             @("Genre", "ReleaseYear", "ReleaseCountry", "Performer", "Title") | Where-Object {
                 -not [string]::IsNullOrWhiteSpace((Get-Variable -Name $_ -ValueOnly)) }) {
