@@ -17,7 +17,7 @@ function Get-MediaFileCustomTag {
         $result = @();
     }
     process {
-        Test-MediaFile -MediaFile $MediaFile;
+        Test-MediaFile -MediaFile $MediaFile -TestWritable $false;
         $result += $MediaFile.GetTag($MediaTagType).GetField($MediaTag);
     }
     end {

@@ -39,6 +39,7 @@ function Get-MediaFile {
             }
         }
 
+        Test-MediaFile -MediaFile $MediaFile -TestWritable $false;
         $result += $MediaFile;
     }
     end {
