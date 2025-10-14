@@ -81,7 +81,8 @@ FunctionsToExport = @(
     'Split-SACDISOToDSF',
     'Test-MediaFileCover',
     'Set-MediaFileCover',
-    'Test-MusicFileTags'
+    'Test-MusicFileTags',
+    'Remove-ReplayGainTags'
 )
 
 # Cmdlets to export from this module, for best performance, do not use
