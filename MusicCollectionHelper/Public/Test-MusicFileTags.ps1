@@ -120,5 +120,33 @@ function Test-MusicFileTags {
             Write-Warning "File $MusicFilePath, ReplayGain tags detected: $(`
             $replayTags -join ", ")";
         }
+
+        # Test the number of discs fields.
+        $discCount = Get-MediaFileTag -MediaFile $MusicFile `
+            -MediaTag "DiscCount";
+        $discNumber = Get-MediaFileTag -MediaFile $MusicFile `
+            -MediaTag "Disc";
+
+        if ($discCount -and $discCount -le 0) {
+            Write-Warning ("File $MusicFilePath, disc count field has " +
+                "an invalid value of $discCount");
+        }
+        elseif ($discNumber -and -not $discCount) {
+            Write-Warning ("File $MusicFilePath, disc number set but " +
+                "no disc count value present");
+        }
+        elseif ($discNumber -and $discCount -eq 1) {
+            Write-Warning ("File $MusicFilePath, disc number and count " +
+                "set but unnecessary as disc total is 1");
+        }
+
+        # Test the number of total tracks.
+        $tagValue = Get-MediaFileTag -MediaFile $MusicFile -MediaTag "TrackCount";
+        if (-not $tagValue) {
+            Write-Warning "File $MusicFilePath, no track count value found";
+        }
+        elseif ($tagValue -le 0) {
+            Write-Warning "File $MusicFilePath, track count value invalid ";
+        }
     }
 }
