@@ -52,7 +52,7 @@ function Remove-ReplayGainTags {
         }
         
         if ($tagsChanged) {
-            $MediaFile.Save();
+            $MusicFile.Save();
         }
     }
 }
