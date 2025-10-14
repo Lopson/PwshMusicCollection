@@ -73,6 +73,7 @@ FunctionsToExport = @(
     'Get-MediaFileTag',
     'Get-MediaFileTagStringArray',
     'Get-MediaTagTypes',
+    'Get-MediaFileCustomTag',
     'Set-MediaFileCustomTag',
     'Set-MediaFileTag',
     'Set-MediaFilePicture',

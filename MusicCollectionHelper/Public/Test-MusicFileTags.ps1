@@ -45,7 +45,7 @@ function Test-MusicFileTags {
             Write-Warning ("File $MusicFilePath, Genre tag is empty");
         }
 
-        # Test the release year tag.
+        # Test the standard release year tag.
         $tagValue = Get-MediaFileTag -MediaFile $MusicFile -MediaTag "Year";
         [datetime]$yearTagDateTime = New-Object datetime;
         if ([string]::IsNullOrWhiteSpace($tagValue)) {
@@ -60,6 +60,25 @@ function Test-MusicFileTags {
             Write-Warning (
                 "File $MusicFilePath, release year tag doesn't contain a " +
                 "number or contains an invalid year number");
+        }
+
+        # If Xiph tags are present, test that release year tag too.
+        if (((Get-MediaTagTypes -MediaFile $MusicFile) -band
+                [TagLib.TagTypes]::Xiph) -eq [TagLib.TagTypes]::Xiph) {
+            $tagValue = Get-MediaFileCustomTag -MediaFile $musicFile `
+                -MediaTag "DATE" -MediaTagType "Xiph";
+            
+            if ((-not [string]::IsNullOrWhiteSpace($tagValue)) -and
+                (-not ([datetime]::TryParseExact(
+                        $tagValue,
+                        "yyyy",
+                        [CultureInfo]::InvariantCulture,
+                        [System.Globalization.DateTimeStyles]::None,
+                        [ref]$yearTagDateTime)))) {
+                Write-Warning (
+                    "File $MusicFilePath, Xiph-specific release year tag " +
+                    "is set and contains an invalid year number");
+            }
         }
 
         # Test the release country tag.
