@@ -151,11 +151,19 @@ function Test-MusicFileTags {
             Write-Warning ("File $MusicFilePath, disc count field has " +
                 "an invalid value of $discCount");
         }
-        elseif ($discNumber -and -not $discCount) {
+        if ($discNumber -and $discNumber -le 0) {
+            Write-Warning ("File $MusicFilePath, disc number field has " +
+                "an invalid value of $discNumber");
+        }
+        if ($discNumber -and -not $discCount) {
             Write-Warning ("File $MusicFilePath, disc number set but " +
                 "no disc count value present");
         }
-        elseif ($discNumber -and $discCount -eq 1) {
+        if ($discCount -and -not $discNumber) {
+            Write-Warning ("File $MusicFilePath, disc count set but " +
+                "no disc number present");
+        }
+        if ($discNumber -and $discCount -eq 1) {
             Write-Warning ("File $MusicFilePath, disc number and count " +
                 "set but unnecessary as disc total is 1");
         }

@@ -102,15 +102,23 @@ function Update-AlbumTags {
         $discNumber = Get-MediaFileTag -MediaFile $MusicFile `
             -MediaTag "Disc";
 
-        if ($discCount -and $discCount -le 0) {
+        if (($discCount -and $discCount -le 0) -or 
+            ($discCount -and -not $discNumber)) {
             Set-MediaFileTag -MediaFile $musicFile -MediaTag "DiscCount" `
                 -MediaTagValue $null -Save $false;
         }
-        elseif ($discNumber -and $discCount -eq 1) {
-            Set-MediaFileTag -MediaFile $musicFile -MediaTag "DiscCount" `
-                -MediaTagValue $null -Save $false;
+        if (($discNumber -and $discNumber -le 0) -or
+            ($discNumber -and -not $discCount)) {
             Set-MediaFileTag -MediaFile $musicFile -MediaTag "Disc" `
                 -MediaTagValue $null -Save $false;
+        }
+        if ($discCount -eq 1) {
+            Set-MediaFileTag -MediaFile $musicFile -MediaTag "DiscCount" `
+                -MediaTagValue $null -Save $false;
+            if ($discNumber) {
+                Set-MediaFileTag -MediaFile $musicFile -MediaTag "Disc" `
+                    -MediaTagValue $null -Save $false;
+            }
         }
 
         # Deal with the standard data fields.
