@@ -88,8 +88,8 @@ function Rename-MusicFile {
             
             if ((Test-Path -Path $newName) -or
                 (Test-Path -LiteralPath $newName)) {
-                throw [System.FieldAccessException] (
-                    "File with name $newName already exists");
+                Write-Warning ("File with name $newName already exists, " +
+                    "skipping");
             }
             else {
                 $file | Rename-Item -NewName $newName;
