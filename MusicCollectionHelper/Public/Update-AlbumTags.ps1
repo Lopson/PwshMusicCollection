@@ -120,7 +120,7 @@ function Update-AlbumTags {
                     -MediaTagValue $null -Save $false;
             }
         }
-        if (Test-MediaTagType -MediaFile $MusicFile `
+        if (Test-MediaFileTagType -MediaFile $MusicFile `
                 -MediaTagType [TagLib.TagTypes]::Xiph) {
             $xiphDiscCount = Get-MediaFileCustomTag -MediaFile $musicFile `
                 -MediaTag "TOTALDISCS" -MediaTagType "Xiph";
@@ -150,7 +150,7 @@ function Update-AlbumTags {
                     # composite value, one must do (thisInstance & flag) == flag
                     # https://learn.microsoft.com/en-us/dotnet/api/system.enum.hasflag?view=net-9.0#remarks
                     
-                    if (Test-MediaTagType -MediaFile $musicFile `
+                    if (Test-MediaFileTagType -MediaFile $musicFile `
                             -MediaTagType [TagLib.TagTypes]::Xiph) {
                         Set-MediaFileCustomTag -MediaFile $musicFile `
                             -MediaTag "DATE" -MediaTagType "Xiph" `
