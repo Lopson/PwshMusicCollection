@@ -63,8 +63,8 @@ function Test-MusicFileTags {
         }
 
         # If Xiph tags are present, test that release year tag too.
-        if (((Get-MediaTagTypes -MediaFile $MusicFile) -band
-                [TagLib.TagTypes]::Xiph) -eq [TagLib.TagTypes]::Xiph) {
+        if (Test-MediaTagType -MediaFile $MusicFile `
+                -MediaTagType [TagLib.TagTypes]::Xiph) {
             $tagValue = Get-MediaFileCustomTag -MediaFile $musicFile `
                 -MediaTag "DATE" -MediaTagType "Xiph";
             
@@ -166,6 +166,16 @@ function Test-MusicFileTags {
         if ($discNumber -and $discCount -eq 1) {
             Write-Warning ("File $MusicFilePath, disc number and count " +
                 "set but unnecessary as disc total is 1");
+        }
+        if (Test-MediaTagType -MediaFile $MusicFile `
+                -MediaTagType [TagLib.TagTypes]::Xiph) {
+            $xiphDiscCount = Get-MediaFileCustomTag -MediaFile $musicFile `
+                -MediaTag "TOTALDISCS" -MediaTagType "Xiph";
+            
+            if (-not $discCount -and $xiphDiscCount) {
+                Write-Warning ("File $MusicFilePath, disc count tag not set " +
+                    "but corresponding Xiph tag is set to $xiphDiscCount");
+            }
         }
 
         # Test the number of total tracks.
