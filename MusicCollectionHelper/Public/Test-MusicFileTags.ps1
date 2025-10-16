@@ -64,7 +64,7 @@ function Test-MusicFileTags {
 
         # If Xiph tags are present, test that release year tag too.
         if (Test-MediaFileTagType -MediaFile $MusicFile `
-                -MediaTagType [TagLib.TagTypes]::Xiph) {
+                -MediaTagType "Xiph") {
             $tagValue = Get-MediaFileCustomTag -MediaFile $musicFile `
                 -MediaTag "DATE" -MediaTagType "Xiph";
             
@@ -168,7 +168,7 @@ function Test-MusicFileTags {
                 "set but unnecessary as disc total is 1");
         }
         if (Test-MediaFileTagType -MediaFile $MusicFile `
-                -MediaTagType [TagLib.TagTypes]::Xiph) {
+                -MediaTagType "Xiph") {
             $xiphDiscCount = Get-MediaFileCustomTag -MediaFile $musicFile `
                 -MediaTag "TOTALDISCS" -MediaTagType "Xiph";
             
