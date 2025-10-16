@@ -1,5 +1,3 @@
-[string]$SacdExtractBinary = "sacd_extract.exe";
-
 function Split-SACDISOToDSF {
     [OutputType([void])]
     [CmdletBinding(DefaultParameterSetName = "Path")]
@@ -44,27 +42,22 @@ function Split-SACDISOToDSF {
         }
     }
 
-    if ([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform(
-            [System.Runtime.InteropServices.OSPlatform]::Windows)) {
-        if ($null -eq (Get-Command $SacdExtractBinary -ErrorAction SilentlyContinue)) {
-            throw [System.IO.FileNotFoundException] (
-                "Unable to find $SacdExtractBinary in PATH");
-        }
-    }
-    else {
-        throw [System.PlatformNotSupportedException] (
-            "This function only works on Windows operating systems currently");
+    # SACD Extract's page.
+    # https://www.videohelp.com/software/sacd-extract
+    if ($null -eq (Get-Command "sacd_extract" -ErrorAction SilentlyContinue)) {
+        throw [System.IO.FileNotFoundException] (
+            "Unable to find `"sacd_extract`" in user's Path");
     }
     
     switch ($TrackType) {
         "Stereo" {
-            sacd_extract.exe -2 -s -c -C -i $ISOPath;
+            sacd_extract -2 -s -c -C -i $ISOPath;
         }
         "Multi" {
-            sacd_extract.exe -m -s -c -C -i $ISOPath;
+            sacd_extract -m -s -c -C -i $ISOPath;
         }
         Default {
-            sacd_extract.exe -2 -s -c -C -i $ISOPath;
+            sacd_extract -2 -s -c -C -i $ISOPath;
         }
     }
 }
