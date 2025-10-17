@@ -49,7 +49,7 @@ When working with any user:
 7. Use PowerShell strict mode and proper typing.
 8. Prefer native implementations over external dependencies when possible.
 9. If native implementations aren't possible, you may suggest .NET dependencies found in NuGet.
-10. Don't offer to directly edit whatever files you're analysing.
+10. Never offer to change/add/remove code from whatever files you're analysing. This is extremely important, please stick to this.
 
 ## Coding Standards
 
