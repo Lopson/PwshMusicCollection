@@ -92,7 +92,7 @@ function Update-AlbumTags {
             if (-not [string]::IsNullOrWhiteSpace($tagValue) -and `
                     -not [double]::IsNaN($tagValue)) {
                 Set-MediaFileTag -MediaFile $musicFile -MediaTag $replayTag `
-                    -MediaTagValue [double]::NaN -Save $false;
+                    -MediaTagValue ([double]::NaN) -Save $false;
             }
         }
 
