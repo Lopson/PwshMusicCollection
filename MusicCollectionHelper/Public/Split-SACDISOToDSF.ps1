@@ -45,7 +45,7 @@ function Split-SACDISOToDSF {
     # SACD Extract's page.
     # https://www.videohelp.com/software/sacd-extract
     if ($null -eq (Get-Command "sacd_extract" -ErrorAction SilentlyContinue)) {
-        throw [System.IO.FileNotFoundException] (
+        throw [System.Management.Automation.CommandNotFoundException] (
             "Unable to find `"sacd_extract`" in user's Path");
     }
     
