@@ -83,7 +83,8 @@ FunctionsToExport = @(
     'Set-MediaFileCover',
     'Test-MusicFileTags',
     'Remove-ReplayGainTags',
-    'Set-MusicFileTrackCount'
+    'Set-MusicFileTrackCount',
+    'Compress-DSDFile'
 )
 
 # Cmdlets to export from this module, for best performance, do not use
