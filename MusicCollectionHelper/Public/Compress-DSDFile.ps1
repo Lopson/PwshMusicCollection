@@ -47,6 +47,6 @@ function Compress-DSDFile {
                 "Unable to find `"wavpack`" in user's Path");
         }
         
-        wavpack -h "$MusicFilePath";
+        wavpack -hmv "$MusicFilePath";
     }
 }
