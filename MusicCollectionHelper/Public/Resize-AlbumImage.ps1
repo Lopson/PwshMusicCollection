@@ -1,7 +1,9 @@
+[string]$NEW_IMAGE_SUFFIX = "_resized";
+
 function Resize-AlbumImage {
     param (
-    [Parameter(ParameterSetName = "Path")]    
-    [ValidateScript({
+        [Parameter(ParameterSetName = "Path")]    
+        [ValidateScript({
                 Test-Path -Path $_ -PathType "Leaf"; },
             ErrorMessage = "Path `"{0}`" doesn't seem to exist."
         )]
@@ -38,7 +40,11 @@ function Resize-AlbumImage {
         [Parameter(ParameterSetName = "LiteralPath")]
         [ValidateNotNull()]
         [ValidateRange(0, 1)]
-        [double]$Tolerance = 0.25
+        [double]$Tolerance = 0.25,
+
+        [Parameter(ParameterSetName = "Path")]
+        [Parameter(ParameterSetName = "LiteralPath")]
+        [switch]$Overwrite
     )
 
     # Determine the path of the image file we want to convert.
@@ -100,24 +106,47 @@ function Resize-AlbumImage {
     if ($resizeRequired) {
         # Calculate the nearest power of 2 for the resizing.
         # We need powers of 2 to perform linear resizings.
+        # 
+        # If no nudging of the resize factor gets us closer to the tolerance
+        # range, we'll use the factor calculated here.
         [int]$closest = [int](
             [System.Math]::Ceiling(
                 [System.Math]::Log($resizeTarget / $TargetSize) / [System.Math]::Log(2)));
 
-        # Resize result above tolerance.
+        # If resize result above tolerance, change resize factor value.
         # Here, we're nudging the resize factor by a single power of 2 to see
         # if it gets us closer to the tolerance range.
         if ($resizeTarget -gt $upperBound -and
                 [int]([System.Math]::Ceiling($resizeTarget / ($closest * 2))) -gt $lowerBound -and
                 [int]([System.Math]::Ceiling($resizeTarget / ($closest * 2))) -lt $upperBound) {
-            Resize-Image -ResizeFactor $closest * 2 -Image $imageFile;
+            $closest = $closest * 2;
         }
         
-        # If no nudging of the resize factor gets us closer to the tolerance
-        # range and the resize factor is greater than 1, use the factor we
-        # currently have.
-        elseif ($closest -gt 1) {
-            Resize-Image -ResizeFactor $closest -Image $imageFile;
+        # Resize only if the resize factor is greater than 1 (obviously).
+        if ($closest -gt 1) {
+            # We might want to specify format-specific options.
+            # This is what this variable is for.
+            $writeDefines = $null;
+            
+            # If image we're resizing is JPEG, let's use the target maximum
+            # file size argument of this function.
+            if ($Image.Format -in @([ImageMagick.MagickFormat]::Jpeg,
+                    [ImageMagick.MagickFormat]::Jpg) -and $TargetKiB) {
+                # Define maximum file size.
+                $writeDefines = [ImageMagick.Formats.JpegWriteDefines]::new();
+                $writeDefines.Extent = $TargetKiB;
+            }
+
+            # Do the resizing.
+            if ($Overwrite) {
+                Resize-Image -ResizeFactor $closest -Image $imageFile `
+                    -WriteDefines $writeDefines;
+            }
+            else {
+                Resize-Image -ResizeFactor $closest -Image $imageFile `
+                    -WriteDefines $writeDefines `
+                    -LiteralPath ($imageFile.FileName + $NEW_IMAGE_SUFFIX);
+            }
         }
     }
 }
