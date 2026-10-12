@@ -1,4 +1,5 @@
-[string[]]$FrameworkFallbackOrder = @("netstandard2.0", "net9.0", "net8.0", "net481");
+[string[]]$FrameworkFallbackOrder = @(
+    "netstandard2.0", "netstandard20", "net10.0", "net9.0", "net8.0", "net481");
 
 function Get-NuGetPackageDLLs {
     [OutputType([void])]
@@ -19,11 +20,10 @@ function Get-NuGetPackageDLLs {
 
         # See https://learn.microsoft.com/en-us/dotnet/core/rid-catalog
         # for the full list of Runtime Identifiers.
-        [ValidateNotNullOrWhiteSpace()]
         [ValidateSet('win-x64', 'win-x86', 'win-arm64', 'linux-x64',
             'linux-musl-x64', 'linux-musl-arm64', 'linux-arm', 'linux-arm64',
             'linux-bionic-arm64', 'linux-loongarch64', 'osx', 'osx-x64',
-            'osx-arm64', '*')]
+            'osx-arm64', '*', '', $null)]
         [string]$RuntimeId
     )
     
@@ -44,8 +44,8 @@ function Get-NuGetPackageDLLs {
     # Download package.
     Write-Verbose "Downloading $PackageName to $env:TEMP.";
 
-    nuget install $PackageName -Version $Version -OutputDirectory `
-        $env:TEMP -NoHttpCache > $null;
+    nuget install $PackageName -Version $Version -OutputDirectory $env:TEMP > $null;
+        # $env:TEMP -NoHttpCache > $null;
     if ($LASTEXITCODE -ne 0) {
         throw [System.ApplicationException] (
             "NuGet command has failed to download package $PackageName");
@@ -107,7 +107,7 @@ function Get-NuGetPackageDLLs {
         # Check if the runtime we need is available in the NuGet package.
         # NOTE This may be a naive approach, unsure.
         if (-not ($TargetRuntime -in (
-                Get-ChildItem -LiteralPath (Join-Path . "runtimes")).BaseName)) {
+                Get-ChildItem -LiteralPath (Join-Path $packagePath "runtimes")).BaseName)) {
             throw [System.MissingMemberException] (
                 "Target runtime $TargetRuntime not found in package");
         }
