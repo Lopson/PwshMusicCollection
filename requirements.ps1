@@ -1,25 +1,25 @@
 $Requirements = @(
     [pscustomobject]@{
         PackageName = "TagLibSharp"
-        Version = "*"
+        Version = "2.3.0"
         TargetFramework = "*"
         Modules = @("MediaTagHandler")
     },
     [pscustomobject]@{
         PackageName = "PlaylistsNET"
-        Version = "*"
+        Version = "1.4.1"
         TargetFramework = "*"
         Modules = @("M3UParser")
     },
     [pscustomobject]@{
         PackageName = "Magick.NET.Core"
-        Version = "*"
+        Version = "15.0.0"
         TargetFramework = "*"
         Modules = @("MusicCollectionHelper")
     },
     [pscustomobject]@{
         PackageName = "Magick.NET-Q8-AnyCPU"
-        Version = "*"
+        Version = "15.0.0"
         TargetFramework = "*"
         RuntimeId = "*"
         Modules = @("MusicCollectionHelper")
