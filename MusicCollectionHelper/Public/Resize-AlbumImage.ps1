@@ -1,6 +1,7 @@
 [string]$NEW_IMAGE_SUFFIX = "_resized";
 
 function Resize-AlbumImage {
+    [CmdletBinding(DefaultParameterSetName = "NoPath")]
     param (
         [Parameter(ParameterSetName = "Path")]    
         [ValidateScript({
@@ -18,30 +19,35 @@ function Resize-AlbumImage {
         [ValidateNotNullOrWhiteSpace()]
         [string]$LiteralPath,
 
+        [Parameter(ParameterSetName = "NoPath")]
         [Parameter(ParameterSetName = "Path")]
         [Parameter(ParameterSetName = "LiteralPath")]
         [ValidateNotNullOrEmpty()]
         [ValidateSet([ValidImageExtensions])]
         [string]$Extension = "jpg",
 
+        [Parameter(ParameterSetName = "NoPath")]
         [Parameter(ParameterSetName = "Path")]
         [Parameter(ParameterSetName = "LiteralPath")]
         [ValidateNotNull()]
         [ValidateRange(1, [int]::MaxValue)]
         [int]$TargetSize = 1000,
 
+        [Parameter(ParameterSetName = "NoPath")]
         [Parameter(ParameterSetName = "Path")]
         [Parameter(ParameterSetName = "LiteralPath")]
         [ValidateNotNull()]
         [ValidateRange(1, [int]::MaxValue)]
         [int]$TargetKiB = 1024,
 
+        [Parameter(ParameterSetName = "NoPath")]
         [Parameter(ParameterSetName = "Path")]
         [Parameter(ParameterSetName = "LiteralPath")]
         [ValidateNotNull()]
         [ValidateRange(0, 1)]
         [double]$Tolerance = 0.25,
 
+        [Parameter(ParameterSetName = "NoPath")]
         [Parameter(ParameterSetName = "Path")]
         [Parameter(ParameterSetName = "LiteralPath")]
         [switch]$Overwrite
@@ -57,20 +63,20 @@ function Resize-AlbumImage {
         "LiteralPath" {
             [string]$imagePath = Get-Item -LiteralPath $LiteralPath;
         }
-    }
-    if (-not $imagePath) {
-        foreach ($imageExtension in [ValidImageExtensions]::new().GetValidValues()) {
-            if ("folder.$($imageExtension.ToLower())" -in (Get-ChildItem).Name.ToLower()) {
-                $imagePath = Get-Item -LiteralPath "folder.$imageExtension";
-                break;
-            }
-            elseif ("cover.$($imageExtension.ToLower())" -in (Get-ChildItem).Name.ToLower()) {
-                $imagePath = Get-Item -LiteralPath "cover.$imageExtension";
-                break;
-            }
-            elseif ("albumart.$($imageExtension.ToLower())" -in (Get-ChildItem).Name.ToLower()) {
-                $imagePath = Get-Item -LiteralPath "albumart.$imageExtension";
-                break;
+        "NoPath" {
+            foreach ($imageExtension in [ValidImageExtensions]::new().GetValidValues()) {
+                if ("folder.$($imageExtension.ToLower())" -in (Get-ChildItem).Name.ToLower()) {
+                    $imagePath = Get-Item -LiteralPath "folder.$imageExtension";
+                    break;
+                }
+                elseif ("cover.$($imageExtension.ToLower())" -in (Get-ChildItem).Name.ToLower()) {
+                    $imagePath = Get-Item -LiteralPath "cover.$imageExtension";
+                    break;
+                }
+                elseif ("albumart.$($imageExtension.ToLower())" -in (Get-ChildItem).Name.ToLower()) {
+                    $imagePath = Get-Item -LiteralPath "albumart.$imageExtension";
+                    break;
+                }
             }
         }
     }
@@ -90,7 +96,7 @@ function Resize-AlbumImage {
 
     # Calculate some sizes (in px) to be used in processing.
     [int]$resizeTarget = (
-            $imageFile.BaseHeight -gt $imageFile.BaseWidth ? `
+        $imageFile.BaseHeight -gt $imageFile.BaseWidth ? `
             $imageFile.BaseHeight : $imageFile.BaseWidth);
     [int]$upperBound = $TargetSize + ($TargetSize * $Tolerance);
     [int]$lowerBound = $TargetSize - ($TargetSize * $Tolerance);
@@ -145,7 +151,15 @@ function Resize-AlbumImage {
             else {
                 Resize-Image -ResizeFactor $closest -Image $imageFile `
                     -WriteDefines $writeDefines `
-                    -LiteralPath ($imageFile.FileName + $NEW_IMAGE_SUFFIX);
+                    -LiteralPath (
+                        Join-Path `
+                            (Split-Path $imageFile.FileName) `
+                            (
+                                (Split-Path $imageFile.FileName -LeafBase) + `
+                                $NEW_IMAGE_SUFFIX + `
+                                (Split-Path $imageFile.FileName -Extension).ToLower()
+                            )
+                    );
             }
         }
     }

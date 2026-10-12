@@ -1,4 +1,5 @@
 function Resize-Image {
+    [CmdletBinding(DefaultParameterSetName = "NoPath")]
     param(
         [Parameter(Mandatory = $true)]
         [Parameter(ParameterSetName = "NoPath")]
@@ -38,7 +39,7 @@ function Resize-Image {
         "LiteralPath" {
             [string]$OutputPath = Join-Path (
                 Get-Item -LiteralPath (Split-Path $LiteralPath)) `
-                (Split-Path $Path -Leaf);
+                (Split-Path $LiteralPath -Leaf);
         }
         "NoPath" {
             if ($Image.FileName) {
@@ -59,17 +60,17 @@ function Resize-Image {
 
     # Detect misalignments between output path and image's own extension.
     if (((Split-Path $OutputPath -Extension) -replace '\.').ToLower() -ne `
-            $Image.Format.ToLower()) {
+            $Image.Format.ToString().ToLower()) {
         Write-Warning ("Output file extension doesn't match image object's " +
             "file type, changing extension in given path!")
 
         $OutputPath = Join-Path (Split-Path $OutputPath) `
-            "$(Split-Path $OutputPath -LeafBase).$($Image.Format.ToLower())"
+            "$(Split-Path $OutputPath -LeafBase).$($Image.Format.ToString().ToLower())"
     }
 
     # Define resize percentage.
     $ResizePercent = [ImageMagick.Percentage]::new(
-            [int]([double](1 / $ResizeFactor)) * 100);
+            ([double](1 / $ResizeFactor)) * 100);
     $Image.Resize(
             [ImageMagick.MagickGeometry]::new($ResizePercent, $ResizePercent));
     
