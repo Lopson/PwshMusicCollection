@@ -136,7 +136,7 @@ function Resize-AlbumImage {
             
             # If image we're resizing is JPEG, let's use the target maximum
             # file size argument of this function.
-            if ($Image.Format -in @([ImageMagick.MagickFormat]::Jpeg,
+            if ($imageFile.Format -in @([ImageMagick.MagickFormat]::Jpeg,
                     [ImageMagick.MagickFormat]::Jpg) -and $TargetKiB) {
                 # Define maximum file size.
                 $writeDefines = [ImageMagick.Formats.JpegWriteDefines]::new();
