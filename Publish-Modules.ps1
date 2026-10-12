@@ -65,7 +65,7 @@ function Publish-Modules {
     # Check if NuGet is currently installed.
     if (-not (Get-Command -Name "nuget" -ErrorAction SilentlyContinue)) {
         throw [System.IO.FileNotFoundException] (
-            "NuGet executable not found in system");       
+            "NuGet executable not found in system");
     }
 
     Write-Verbose "NuGet command found in system";
@@ -122,7 +122,8 @@ function Publish-Modules {
                 }
                 Get-NuGetPackageDLLs -OutputPath $dllPath -PackageName `
                     $requirement.PackageName -Version $requirement.Version `
-                    -TargetFramework $requirement.TargetFramework;
+                    -TargetFramework $requirement.TargetFramework `
+                    -RuntimeId $requirement.RuntimeId;
 
                 Write-Verbose ("Downloaded dependency $($requirement.PackageName) " + 
                 "of module $moduleName");
