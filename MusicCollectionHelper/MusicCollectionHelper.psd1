@@ -52,7 +52,10 @@ RequiredModules = @(
     'CueParser')
 
 # Assemblies that must be loaded prior to importing this module
-# RequiredAssemblies = @()
+RequiredAssemblies = @(
+    (Join-Path 'Assemblies' 'Magick.NET.Core.dll'),
+    (Join-Path 'Assemblies' 'Magick.NET-Q8-AnyCPU.dll')
+)
 
 # Script files (.ps1) that are run in the caller's environment prior to
 # importing this module
@@ -84,7 +87,8 @@ FunctionsToExport = @(
     'Test-MusicFileTags',
     'Remove-ReplayGainTags',
     'Set-MusicFileTrackCount',
-    'Compress-DSDFile'
+    'Compress-DSDFile',
+    'Resize-AlbumImage'
 )
 
 # Cmdlets to export from this module, for best performance, do not use
