@@ -54,15 +54,15 @@ function Resize-AlbumImage {
     }
     if (-not $imagePath) {
         foreach ($imageExtension in [ValidImageExtensions]::new().GetValidValues()) {
-            if ("folder.$imageExtension" -in (Get-ChildItem).Name.ToLower()) {
+            if ("folder.$($imageExtension.ToLower())" -in (Get-ChildItem).Name.ToLower()) {
                 $imagePath = Get-Item -LiteralPath "folder.$imageExtension";
                 break;
             }
-            elseif ("cover.$imageExtension" -in (Get-ChildItem).Name.ToLower()) {
+            elseif ("cover.$($imageExtension.ToLower())" -in (Get-ChildItem).Name.ToLower()) {
                 $imagePath = Get-Item -LiteralPath "cover.$imageExtension";
                 break;
             }
-            elseif ("albumart.$imageExtension" -in (Get-ChildItem).Name.ToLower()) {
+            elseif ("albumart.$($imageExtension.ToLower())" -in (Get-ChildItem).Name.ToLower()) {
                 $imagePath = Get-Item -LiteralPath "albumart.$imageExtension";
                 break;
             }
@@ -78,69 +78,44 @@ function Resize-AlbumImage {
     
     # Set the format of the image output to the one given.
     if (-not ($Extension -in [ImageMagick.MagickFormat].GetEnumNames().ToLower())) {
-        throw "Specified file extension doesn't exist in ImageMagick";
+        throw "Specified file extension '$Extension' doesn't exist in ImageMagick";
     }
     $imageFile.Format = [ImageMagick.MagickFormat]$Extension;
 
-    [bool]$resizeRequired = $false;
-    if ($imageFile.BaseHeight -gt 1000 -or $imageFile.BaseWidth -gt 1000) {
-        $resizeRequired = $true;
-    }
-    if ($resizeRequired) {
-        [int]$resizeTarget = (
+    # Calculate some sizes (in px) to be used in processing.
+    [int]$resizeTarget = (
             $imageFile.BaseHeight -gt $imageFile.BaseWidth ? `
             $imageFile.BaseHeight : $imageFile.BaseWidth);
-        
+    [int]$upperBound = $TargetSize + ($TargetSize * $Tolerance);
+    [int]$lowerBound = $TargetSize - ($TargetSize * $Tolerance);
+    
+    # Check if we need to resize, which we only want to do if the image
+    # is larger than our upper size bound (in px).
+    [bool]$resizeRequired = $false;
+    if ($resizeTarget -gt $upperBound) {
+        $resizeRequired = $true;
+    }
+    
+    # Perform resizing if required.
+    if ($resizeRequired) {
         # Calculate the nearest power of 2 for the resizing.
         # We need powers of 2 to perform linear resizings.
         [int]$closest = [int](
             [System.Math]::Ceiling(
                 [System.Math]::Log($resizeTarget / $TargetSize) / [System.Math]::Log(2)));
 
-        function Resize-Image {
-            param(
-                [int]$ResizeFactor,
-                [ImageMagick.MagickImage]$Image
-            )
-
-            # Define resize percentage.
-            $ResizePercent = [ImageMagick.Percentage]::new(
-                    ([double](1 / $ResizeFactor)) * 100);
-            $Image.Resize(
-                    [ImageMagick.MagickGeometry]::new($ResizePercent, $ResizePercent));
-            
-            # If image we're resizing is JPEG, let's use the target maximum
-            # file size argument of this function.
-            if ($Image.Format -in @([ImageMagick.MagickFormat]::Jpeg,
-                    [ImageMagick.MagickFormat]::Jpg)) {
-                # Define maximum file size.
-                $jpegOptions = [ImageMagick.Formats.JpegWriteDefines]::new();
-                $jpegOptions.Extent = $TargetKiB;
-
-                $Image.Write($Image.FileName, $jpegOptions);
-            }
-            else {
-                $Image.Write($Image.FileName);
-            }
-        }
-
-        [int]$upperBound = $TargetSize + ($TargetSize * $Tolerance);
-        [int]$lowerBound = $TargetSize - ($TargetSize * $Tolerance);
-
         # Resize result above tolerance.
-        if ($closest -gt 1 -and $resizeTarget -gt $upperBound -and
-                    ($resizeTarget / ($closest * 2)) -gt $lowerBound -and
-                    ($resizeTarget / ($closest * 2)) -lt $upperBound) {
+        # Here, we're nudging the resize factor by a single power of 2 to see
+        # if it gets us closer to the tolerance range.
+        if ($resizeTarget -gt $upperBound -and
+                [int]([System.Math]::Ceiling($resizeTarget / ($closest * 2))) -gt $lowerBound -and
+                [int]([System.Math]::Ceiling($resizeTarget / ($closest * 2))) -lt $upperBound) {
             Resize-Image -ResizeFactor $closest * 2 -Image $imageFile;
         }
-        # Resize result below tolerance.
-        elseif ($closest -gt 1 -and $resizeTarget -lt $lowerBound -and
-                    ($resizeTarget / ($closest / 2)) -gt $lowerBound -and
-                    ($resizeTarget / ($closest / 2)) -lt $upperBound) {
-            Resize-Image -ResizeFactor $closest / 2 -Image $imageFile;
-        }
-        # Normal case, resize result within tolerance, OR
-        # Resize is necessary but we can't get it within tolerance.
+        
+        # If no nudging of the resize factor gets us closer to the tolerance
+        # range and the resize factor is greater than 1, use the factor we
+        # currently have.
         elseif ($closest -gt 1) {
             Resize-Image -ResizeFactor $closest -Image $imageFile;
         }
