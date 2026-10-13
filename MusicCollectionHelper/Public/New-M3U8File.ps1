@@ -49,7 +49,7 @@ function New-M3U8File {
         if ($file -notmatch "^\d\d\. ") {
             throw [System.ArgumentException] (
                 "One of the music file names doesn't start with '\d\d. '," + 
-                " which goes against our naming convention, aborting"
+                " which goes against our naming convention"
             );
         }
     }
