@@ -1,212 +1,231 @@
 function New-M3U8File {
-    # NOTE This function doesn't use parameter sets on purpose as if we were to
-    # do that we wouldn't be able to invoke it with no arguments.
-
     [OutputType([void])]
+    [CmdletBinding(DefaultParameterSetName = "NoPath")]
     param (
-        [ValidateScript({ if (-not [string]::IsNullOrWhiteSpace($_)) {
-                    Test-Path -Path (Get-Location).Path -PathType "Container";
-                } },
-            ErrorMessage = "Folder of path `"{0}`" doesn't seem to exist."
+        [Parameter(ParameterSetName = "Path")]
+        [ValidateScript({
+                Test-Path -Path (Split-Path -Path $_) -PathType "Container"; },
+            ErrorMessage = "Parent of path `"{0}`" doesn't seem to exist."
         )]
+        [ValidateNotNullOrWhiteSpace()]
         [string]$Path,
         
-        [ValidateScript({ if (-not [string]::IsNullOrWhiteSpace($_)) {
-                    Test-Path -LiteralPath (Split-Path -LiteralPath $_) -PathType "Container"; 
-                } },
-            ErrorMessage = "Folder of literal path `"{0}`" doesn't seem to exist."
+        [Parameter(ParameterSetName = "LiteralPath")]
+        [ValidateScript({
+                Test-Path -LiteralPath (Split-Path -LiteralPath $_) -PathType "Container"; },
+            ErrorMessage = "Parent of Literal Path `"{0}`" doesn't seem to exist."
         )]
+        [ValidateNotNullOrWhiteSpace()]
         [string]$LiteralPath,
-
-        [string[]]$Genre,
-
-        [string]$ReleaseYear,
-
-        [ValidateSet([Valid3LetterCountryCodes])]
-        [string]$ReleaseCountry,
-
-        [string[]]$Performer,
-
-        [string]$Title,
         
-        [ValidateSet($true, $false)]
-        [bool]$UseTags = $true,
-        
+        [Parameter(ParameterSetName = "NoPath")]
+        [Parameter(ParameterSetName = "Path")]
+        [Parameter(ParameterSetName = "LiteralPath")]
         [ValidateSet([ValidAudioExtensions])]
         [ValidateNotNullOrEmpty()]
         [string]$Extension = "flac",
 
-        [ValidateSet($true, $false)]
-        [bool]$UpdateTags = $false
+        [switch]$Overwrite
     )
 
-    # Make sure we're not passing too many arguments.
-    if (-not [string]::IsNullOrWhiteSpace($Path) -and `
-            -not [string]::IsNullOrWhiteSpace($LiteralPath)) {
-        throw [System.ArgumentException] "You can't pass both Path and LiteralPath";
+    # Get the M3U8 file's folder first.
+    [string]$M3U8Folder = $null;
+    switch ($PSCmdlet.ParameterSetName) {
+        "Path"        { $M3U8Folder = (Split-Path -Path $Path); }
+        "LiteralPath" { $M3U8Folder = (Split-Path -LiteralPath $LiteralPath); }
+        "NoPath"      { $M3U8Folder = (Get-Location).Path; }
     }
-    
-    # TODO Calculate the folder first here, then calculate the filename at the end.
-    # that way, we can set the name of the playlist to album artist plus album title.
-    #
-    # Define the path we want for our M3U8 file.
-    [string]$M3U8Path = "";
-    if (-not [string]::IsNullOrWhiteSpace($Path)) {
-        $M3U8Path = Join-Path (Get-Location).Path (Split-Path -Path $Path -Leaf);
-    }
-    elseif (-not [string]::IsNullOrWhiteSpace($LiteralPath)) {
-        $M3U8Path = $LiteralPath;
-    }
-    else {
-        if (-not [string]::IsNullOrWhiteSpace($Performer) -and `
-                -not [string]::IsNullOrWhiteSpace($Title)) {
-            $M3U8Path = Join-Path (Get-Location).Path "$Performer - $Title.m3u8";
-        }
-        else {
-            [string]$CurrentFolderName = Split-Path -Path (Get-Location).Path -Leaf;
-            $M3U8Path = Join-Path (Get-Location).Path "$CurrentFolderName.m3u8";
-        }
-    }
-
-    # Define the folder that's going to contain the M3U8 file.
-    [string]$M3U8Folder = Split-Path $M3U8Path -Parent;
-    Test-FolderExists -FolderPath $M3U8Folder;
 
     # Get list of files in M3U8 folder.
-    [string[]]$ExtFiles = @(Get-ChildItem -LiteralPath $M3U8Folder -Filter "*.$Extension" |
-        Select-Object -ExpandProperty "Name");
-    if (-not $ExtFiles) {
+    [string[]]$M3U8Files = (
+        Get-ChildItem -LiteralPath $M3U8Folder -Filter "*.$Extension" | Sort-Object).Name;
+    if (-not $M3U8Files) {
         throw [System.IO.FileNotFoundException] `
             "No .$Extension files found in folder $M3U8Folder";
     }
+    
+    # Check that files follow naming convention.
+    foreach ($file in $M3U8Files) {
+        if ($file -notmatch "^\d\d\. ") {
+            throw [System.ArgumentException] (
+                "One of the music file names doesn't start with '\d\d. '," + 
+                " which goes against our naming convention"
+            );
+        }
+    }
 
-    # Check if the tag arguments are empty and, if so, try to get them from
-    # the first audio file found in the folder.
-    if ($UseTags) {
-        # Go over the various parameters passed onto this function that are empty.
-        foreach ($param in (`
-                @("Genre", "ReleaseYear", "ReleaseCountry", "Performer", "Title") | Where-Object {
-                    -not (Get-Variable -Name $_ -ValueOnly) -or `
-                        [string]::IsNullOrWhiteSpace($(Get-Variable -Name $_ -ValueOnly)) })) {
-            [string]$value = Get-Variable -Name $param -ValueOnly;
-            
-            if ([string]::IsNullOrWhiteSpace($value)) {
-                # Get the tags of the first audio file of the folder.
-                $MusicFile = Get-MediaFile -LiteralPath (
-                    Join-Path $M3U8Folder $ExtFiles[0]);
+    # Check that there are no gaps in file track numbers.
+    for ($i = 0; $i -lt $M3U8Files.Count; $i++) {
+        if (($i + 1) -ne [int]("$($M3U8Files[$i][0])$($M3U8Files[$i][1])")) {
+            throw [System.ArgumentException] (
+                "Possible gap in music file numbering detected, please " + 
+                "check that all files are numbered sequentially"
+            );
+        }
+    }
 
-                # Populate the function arguments.
-                switch ($param) {
-                    "Genre" {
-                        [string[]]$tagValue = Get-MediaFileTagStringArray `
-                            -MediaFile $MusicFile -MediaTag "Genres";
-                        if ($tagValue -and $tagValue.Length -gt 0) {
-                            $Genre = $tagValue;
-                        }
-                    }
+    # Get the album metadata from the music files.
+    # The behavior is that it'll search for the fields across all music files.
+    #
+    # The only thing it needs is to populate all of the fields below, so that's
+    # the only validation being performed: that at least one of the files has
+    # one of the missing tags.
+    #
+    # Note that further down below, we do validate that all music files have a
+    # track title tag, as we need that for the playlist.
+    [string[]]$albumPerformer = $null;
+    [string]$albumTitle = $null;
+    [string[]]$albumGenre = $null;
+    [string]$albumReleaseYear = $null;
+    [string]$albumReleaseCountry = $null;
+    foreach ($file in $M3U8Files) {
+        if ($albumPerformer -and $albumTitle -and $albumGenre -and `
+                $albumReleaseYear -and $albumReleaseCountry) {
+            break;
+        }
 
-                    "ReleaseYear" {
-                        [string]$tagValue = Get-MediaFileTag -MediaFile $MusicFile `
-                            -MediaTag "Year";
-                        if (-not [string]::IsNullOrWhiteSpace($tagValue)) {
-                            $ReleaseYear = $tagValue.Trim();
-                        }
-                    }
+        $musicFile = Get-MediaFile -LiteralPath (Join-Path $M3U8Folder $file);
+        
+        if (-not $albumPerformer) {
+            [string[]]$albumArtistsValue = Get-MediaFileTagStringArray `
+                -MediaFile $musicFile -MediaTag "AlbumArtists";
+            [string[]]$performersValue = Get-MediaFileTagStringArray `
+                -MediaFile $musicFile -MediaTag "Performers";
 
-                    "ReleaseCountry" {
-                        [string]$tagValue = Get-MediaFileTag -MediaFile $MusicFile `
-                            -MediaTag "MusicBrainzReleaseCountry";
-                        if (-not [string]::IsNullOrWhiteSpace($tagValue)) {
-                            $ReleaseCountry = $tagValue.Trim();
-                        }
-                    }
+            if ($albumArtistsValue -and $albumArtistsValue.Length -gt 0) {
+                $albumPerformer = $albumArtistsValue.Trim();
+            }
+            elseif ($performersValue -and $performersValue.Length -gt 0) {
+                $albumPerformer = $performersValue.Trim();
+            }
+        }
+        
+        if (-not $albumTitle) {
+            [string]$titleValue = Get-MediaFileTag -MediaFile $musicFile `
+               -MediaTag "Album";
+            if (-not [string]::IsNullOrWhiteSpace($titleValue)) {
+                $albumTitle = $titleValue.Trim();
+            }
+        }
 
-                    "Performer" {
-                        [string[]]$albumArtistsValue = Get-MediaFileTagStringArray `
-                            -MediaFile $MusicFile -MediaTag "AlbumArtists";
-                        [string[]]$performersValue = Get-MediaFileTagStringArray `
-                            -MediaFile $MusicFile -MediaTag "Performers";
+        if (-not $albumGenre) {
+            [string[]]$genreValue = Get-MediaFileTagStringArray `
+                -MediaFile $musicFile -MediaTag "Genres";
+            if ($genreValue -and $genreValue.Length -gt 0) {
+                $albumGenre = $genreValue.Trim();
+            }
+        }
 
-                        if ($albumArtistsValue -and $albumArtistsValue.Length -gt 0) {
-                            $Performer = $albumArtistsValue;
-                        }
-                        elseif ($performersValue -and $performersValue.Length -gt 0) {
-                            $Performer = $performersValue;
-                        }
-                    }
+        if (-not $albumReleaseYear) {
+            [string]$yearValue = Get-MediaFileTag -MediaFile $musicFile `
+                -MediaTag "Year";
+            if (-not [string]::IsNullOrWhiteSpace($yearValue)) {
+                $albumReleaseYear = $yearValue.Trim();
+            }
+        }
+        if (-not $albumReleaseCountry) {
+            [string]$countryValue = Get-MediaFileTag -MediaFile $musicFile `
+                -MediaTag "MusicBrainzReleaseCountry";
+            if (-not [string]::IsNullOrWhiteSpace($countryValue)) {
+                $albumReleaseCountry = $countryValue.Trim();
+            }
+        }
+    }
+    [bool]$throwTagException = $false;
+    foreach ($metadataValue in @(
+            "albumPerformer", "albumTitle", "albumGenre",
+            "albumReleaseYear", "albumReleaseCountry")) {
+        if (-not (Get-Variable -Name $metadataValue -ValueOnly) -or `
+                [string]::IsNullOrWhiteSpace(
+                (Get-Variable -Name $metadataValue -ValueOnly))) {
+            Write-Error "No value found for tag $($metadataValue)";
+            $throwTagException = $true;
+        }
+    }
+    if ($throwTagException) {
+        throw [System.ArgumentException] (
+            "Unable to retrieve basic album-wide tags from any of " +
+            "the music files.");
+    }
 
-                    "Title" {
-                        [string]$tagValue = Get-MediaFileTag -MediaFile $MusicFile `
-                            -MediaTag "Album";
-                        if (-not [string]::IsNullOrWhiteSpace($tagValue)) {
-                            $Title = $tagValue.Trim();
-                        }
-                    }
-                }
+    # Define the path we want for our M3U8 file.
+    [string]$M3U8Path = $null;
+    switch ($PSCmdlet.ParameterSetName) {
+        "Path" {
+            if ((Test-Path -Path $Path -PathType "Leaf") -and -not $Overwrite) {
+                throw [System.IO.IOException] (
+                    "File $Path already exists and overwrite flag not enabled"
+                );
+            }
+            $M3U8Path = $Path;
+        }
+        "LiteralPath" {
+            if ((Test-Path -LiteralPath $LiteralPath -PathType "Leaf") -and `
+                    -not $Overwrite) {
+                throw [System.IO.IOException] (
+                    "File $LiteralPath already exists and overwrite flag not enabled"
+                );
+            }
+            $M3U8Path = $LiteralPath;
+        }
+        "NoPath" {
+            $M3U8Path = Join-Path $M3U8Folder "$albumPerformer - $albumTitle.m3u8";
+
+            if ((Test-Path -LiteralPath $M3U8Path -PathType "Leaf") -and `
+                    -not $Overwrite) {
+                throw [System.IO.IOException] (
+                    "File $M3U8Path already exists and overwrite flag not enabled"
+                );
             }
         }
     }
 
-    # Check if the album metadata values aren't empty.
-    foreach ($MetadataValue in @(
-            "Genre", "ReleaseYear", "ReleaseCountry", "Performer", "Title")) {
-        if (-not (Get-Variable -Name $MetadataValue -ValueOnly) -or `
-                [string]::IsNullOrWhiteSpace(
-                (Get-Variable -Name $MetadataValue -ValueOnly))) {
-            Write-Warning "Tag $($MetadataValue) is empty";
-        }
-    }
-
-    # Initialize the M3U playlist object.
+    # Initialize the M3U8 playlist object.
     [PlaylistsNET.Models.M3uPlaylist]$M3U8Playlist = (
         New-M3UPlaylist -LiteralPath (Split-Path $M3U8Path -Parent) `
-            -Filename (Split-Path $M3U8Path -Leaf))
+            -Filename (Split-Path $M3U8Path -Leaf));
     
     # Insert entries and metadata into the playlist.
-    for ($i = 0; $i -lt $ExtFiles.Length; $i++) {
-        $ExtFile = $ExtFiles[$i];
+    for ($i = 0; $i -lt $M3U8Files.Length; $i++) {
+        $file = $M3U8Files[$i];
         # Get the file's tags so we can get track title and duration.
-        $MusicFile = Get-MediaFile -LiteralPath (
-            Join-Path $M3U8Folder $ExtFile);
+        $musicFile = Get-MediaFile -LiteralPath (
+            Join-Path $M3U8Folder $file);
 
         # We need track title and track length for the EXTINF M3U extension.
-        [string]$TrackTitle = Get-MediaFileTag -MediaFile $MusicFile `
+        [string]$trackTitle = Get-MediaFileTag -MediaFile $musicFile `
             -MediaTag "Title";
-        if ([string]::IsNullOrWhiteSpace($TrackTitle)) {
-            Write-Warning "Track `"$ExtFile`" has no title track in its tags";
+        if (-not $trackTitle -or [string]::IsNullOrWhiteSpace($trackTitle)) {
+            throw [System.ArgumentException] (
+                "File `"$file`" has no title track in its tags");
         }
-        [timespan]$TrackLength = $MusicFile.Properties.Duration;
+        [timespan]$trackLength = $musicFile.Properties.Duration;
 
-        [PlaylistsNET.Models.M3uPlaylistEntry]$ExtFileEntry = $null;
+        [PlaylistsNET.Models.M3uPlaylistEntry]$fileEntry = $null;
         if ($i -eq 0) {
-            $ExtFileEntry = New-M3UPlaylistEntry `
-                -Path $ExtFile `
-                -TrackTitle "$($Performer -join ", ") - $TrackTitle" `
-                -TrackLength $TrackLength `
-                -TrackArtist ($Performer -join ", ") `
-                -AlbumTitle $Title `
+            $fileEntry = New-M3UPlaylistEntry `
+                -Path $file `
+                -TrackTitle "$($albumPerformer -join ", ") - $trackTitle" `
+                -TrackLength $trackLength `
+                -TrackArtist ($albumPerformer -join ", ") `
+                -AlbumTitle $albumTitle `
                 -CustomProperties @{
-                "EXTGENRE"   = ($Genre -join ", ")
-                "EXTCOUNTRY" = $ReleaseCountry
-                "EXTDATE"    = $ReleaseYear
+                "EXTGENRE"   = ($albumGenre -join ", ")
+                "EXTCOUNTRY" = $albumReleaseCountry
+                "EXTDATE"    = $albumReleaseYear
             };
         }
         else {
-            $ExtFileEntry = New-M3UPlaylistEntry `
-                -LiteralPath $ExtFile `
-                -TrackTitle "$($Performer -join ", ") - $TrackTitle" `
-                -TrackLength $TrackLength
+            $fileEntry = New-M3UPlaylistEntry `
+                -LiteralPath $file `
+                -TrackTitle "$($albumPerformer -join ", ") - $trackTitle" `
+                -TrackLength $trackLength
         }
         
-        $M3U8Playlist.PlaylistEntries.Add($ExtFileEntry);
+        $M3U8Playlist.PlaylistEntries.Add($fileEntry);
     }
 
     # Write the M3U8 file.
     Set-Content -Value (Export-M3UPlaylist -M3UPlaylist $M3U8Playlist) `
         -Encoding "utf8BOM" -LiteralPath $M3U8Path;
-    
-    # Update all of the tags in our music files if argument $UpdateTags is $true.
-    if ($UpdateTags) {
-        Update-AlbumTags;
-    }
 }

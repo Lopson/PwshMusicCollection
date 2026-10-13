@@ -36,8 +36,6 @@ function Resize-AlbumImage {
         [Parameter(ParameterSetName = "NoPath")]
         [Parameter(ParameterSetName = "Path")]
         [Parameter(ParameterSetName = "LiteralPath")]
-        [ValidateNotNull()]
-        [ValidateRange(1, [int]::MaxValue)]
         [int]$TargetKiB = 1024,
 
         [Parameter(ParameterSetName = "NoPath")]
@@ -52,6 +50,14 @@ function Resize-AlbumImage {
         [Parameter(ParameterSetName = "LiteralPath")]
         [switch]$Overwrite
     )
+
+    # Validate the TargetKiB argument.
+    if ($TargetKiB -and -not (
+            $TargetKiB -ge 1 -and $TargetKiB -le [int]::MaxValue)) {
+        throw [System.ArgumentOutOfRangeException] (
+            "Specified TargetKiB value is not a valid size number"
+        );
+    }
 
     # Determine the path of the image file we want to convert.
     # Default file names: folder, cover, albumart.
@@ -161,6 +167,16 @@ function Resize-AlbumImage {
                             )
                     );
             }
+            Write-Information -MessageData "Resized album art" `
+                -InformationAction "Continue";
         }
+        else {
+            Write-Information -MessageData "No album resizing required" `
+                -InformationAction "Continue";
+        }
+    }
+    else {
+        Write-Information -MessageData "No album resizing required" `
+            -InformationAction "Continue";
     }
 }
