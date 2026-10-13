@@ -161,6 +161,12 @@ function Resize-AlbumImage {
                             )
                     );
             }
+            Write-Information -MessageData "Resized album art" `
+                -InformationAction "Continue";
+        }
+        else {
+            Write-Information -MessageData "No album resizing required" `
+                -InformationAction "Continue";
         }
     }
 }
