@@ -169,4 +169,8 @@ function Resize-AlbumImage {
                 -InformationAction "Continue";
         }
     }
+    else {
+        Write-Information -MessageData "No album resizing required" `
+            -InformationAction "Continue";
+    }
 }
