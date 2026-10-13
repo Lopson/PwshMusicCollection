@@ -24,7 +24,13 @@ function Test-MediaFileCover {
             ErrorMessage = "Literal Path `"{0}`" doesn't seem to exist."
         )]
         [ValidateNotNullOrEmpty()]
-        [string]$LiteralPath
+        [string]$LiteralPath,
+
+        [Parameter(ParameterSetName = "Path")]
+        [Parameter(ParameterSetName = "LiteralPath")]
+        [ValidateRange(1, [int]::MaxValue)]
+        [ValidateNotNull()]
+        [int]$MinimumSize = 1000
     )
 
     process {
@@ -47,9 +53,10 @@ function Test-MediaFileCover {
         }
 
         $frontCover = $MediaFilePictures[0];
-        if ($frontCover.Width -lt 1000 -or $frontCover.Height -lt 1000) {
+        if ($frontCover.Width -lt $MinimumSize -or `
+                $frontCover.Height -lt $MinimumSize) {
             Write-Warning ("Front cover's size of file $($MediaFile.Name) smaller " +
-                "than 1000 x 1000 px!");
+                "than $MinimumSize x $MinimumSize px!");
             Write-Warning ("Current dimensions: $($frontCover.Width) x " + 
                 "$($frontCover.Height) px");
             return;
