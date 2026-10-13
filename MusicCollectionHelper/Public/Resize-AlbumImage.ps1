@@ -52,7 +52,8 @@ function Resize-AlbumImage {
     )
 
     # Validate the TargetKiB argument.
-    if ($TargetKiB -and -not ($TargetKiB -in 1..[int]::MaxValue)) {
+    if ($TargetKiB -and -not (
+            $TargetKiB -ge 1 -and $TargetKiB -le [int]::MaxValue)) {
         throw [System.ArgumentOutOfRangeException] (
             "Specified TargetKiB value is not a valid size number"
         );
