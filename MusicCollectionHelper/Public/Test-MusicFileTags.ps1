@@ -105,7 +105,7 @@ function Test-MusicFileTags {
             Write-Warning ("File $MusicFilePath, album title tag is empty");
         }
 
-        # Test the "Album Artists" and "Performers" tag.
+        # Test the "AlbumArtists" and "Performers" tag.
         $tagValue = Get-MediaFileTagStringArray `
             -MediaFile $MusicFile -MediaTag "AlbumArtists";
         [bool]$artistsTagged = $false;
@@ -122,6 +122,22 @@ function Test-MusicFileTags {
         if (-not $artistsTagged) {
             Write-Warning (
                 "File $MusicFilePath, album performer tag is empty");
+        }
+
+        # Files may have a Xiph tag named "ALBUM ARTIST" with a space.
+        # We need to test for that too.
+        if (Test-MediaFileTagType -MediaFile $MusicFile `
+                -MediaTagType "Xiph") {
+            $xiphTagValue = Get-MediaFileCustomTag -MediaFile $musicFile `
+                -MediaTag "ALBUM ARTIST" -MediaTagType "Xiph";
+            
+            if (-not [string]::IsNullOrWhiteSpace($tagValue) -and
+                    $tagValue -ne $xiphTagValue) {
+                Write-Warning (
+                    "File $MusicFilePath, Xiph-specific album artist(s) tag " +
+                    "is set and contains a different value from that of the " +
+                    "typical ALBUMARTIST tag");
+            }
         }
 
         # Check for ReplayGain tags.
