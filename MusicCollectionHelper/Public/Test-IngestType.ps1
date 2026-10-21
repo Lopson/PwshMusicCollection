@@ -1,5 +1,5 @@
 function Test-IngestType {
-    # TODO consider making this pipeline-capable
+    # NOTE Consider making this pipeline-capable.
     [OutputType([IngestType])]
     [CmdletBinding(DefaultParameterSetName = "NoPath")]
     param (
@@ -83,11 +83,14 @@ function Test-IngestType {
     # Check if all music files have the same extension.
     $musicExtensionsFound = [System.Collections.Generic.HashSet[string]]::new();
     foreach ($audioType in [ValidAudioExtensions]::new().GetValidValues()) {
-        if (".$audioType" -in `
-                [string[]](
-                    Get-ChildItem -LiteralPath $ingestFolder `
-                    -Filter ("*.$audioType")).Extension.ToLower()) {
-            $musicExtensionsFound.Add($audioType);
+        $audioTypeFiles = [string[]](
+            Get-ChildItem -LiteralPath $ingestFolder `
+            -Filter ("*.$audioType")).Extension;
+        if ($audioTypeFiles -and ".$audioType" -in $audioTypeFiles.ToLower()) {
+            [void]$musicExtensionsFound.Add($audioType);
+        }
+        else {
+            continue;
         }
     }
     if ($musicExtensionsFound.Count -gt 1) {
@@ -181,7 +184,8 @@ function Test-IngestType {
             }
         }
 
-        [Void]$musicMimesFound.UnionWith($musicFileInfoTopResults."MIME type");
+        [void]$musicMimesFound.UnionWith(
+            [string[]]$musicFileInfoTopResults."MIME type");
     }
     if ($musicMimesFound.Count -gt 1) {
         Write-Warning (
@@ -210,21 +214,21 @@ function Test-IngestType {
     # If it's a single audio file with cue sheet, return an ingest type.
     if ($musicFiles.Count -eq 1 -and $cuePath) {
         switch ($isMusicPCM) {
-            $false { return [IngestType]::CueAlbumPCM; }
-            $true  { return [IngestType]::CueAlbumDSD; }
+            $true  { return [IngestType]::CueAlbumPCM; }
+            $false { return [IngestType]::CueAlbumDSD; }
         }
     }
     # If it's multiple audio files with cue sheet, return an ingest type.
     elseif ($musicFiles.Count -gt 1 -and $cuePath) {
         switch ($isMusicPCM) {
-            $false { return [IngestType]::CueMultiPCM; }
-            $true  { return [IngestType]::CueMultiDSD; }
+            $true  { return [IngestType]::CueMultiPCM; }
+            $false { return [IngestType]::CueMultiDSD; }
         }
     }
     elseif ($musicFiles.Count -ge 1) {
         switch ($isMusicPCM) {
-            $false { return [IngestType]::FilePCM; }
-            $true  { return [IngestType]::FileDSD; }
+            $true  { return [IngestType]::FilePCM; }
+            $false { return [IngestType]::FileDSD; }
         }
     }
     else {
