@@ -1,5 +1,5 @@
 function Get-TridFileInfo {
-    [CmdletBinding(DefaultParameterSetName = "Path")]
+    [CmdletBinding(DefaultParameterSetName = "LiteralPath")]
     param (
         [Parameter(Mandatory = $true,
             ValueFromPipeline = $true,
