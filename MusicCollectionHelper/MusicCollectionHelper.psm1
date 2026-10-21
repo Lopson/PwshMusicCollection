@@ -16,3 +16,35 @@ foreach ($class in (
 ) {
     . $class.FullName;
 }
+
+# Declare the types via Type Accelerators so that public functions can rely on them.
+# Source: https://synedgy.com/powershell-modules-exporting-classes/
+$ExportableClasses = @(
+    'IngestType'
+)
+
+foreach ($className in $ExportableClasses) {
+    [string]$ClassPath = Join-Path $PSScriptRoot "Classes" "$className.ps1";
+    if (Test-Path $ClassPath) {
+        . $ClassPath;
+    } else {
+        throw [System.IO.FileNotFoundException] "File $ClassPath not found.";
+    }
+}
+
+# Export the classes using .NET Type Accelerators.
+$typeAcceleratorsClass = [PSObject].Assembly.GetType(
+    'System.Management.Automation.TypeAccelerators'
+);
+[void]$typeAcceleratorsClass::Get;
+
+foreach ($typeToExport in $ExportableClasses) {
+    $type = $TypeToExport -as [System.Type];
+    
+    if (-not $type) {
+        throw [System.TypeLoadException] "Type $typeToExport not found.";
+    }
+    else {
+        [void]$TypeAcceleratorsClass::Add($TypeToExport, $Type);
+    }
+}

@@ -30,13 +30,20 @@ function Get-MediaFile {
         $result = @();   
     }
     process {
-        switch ($PSCmdlet.ParameterSetName) {
-            "Path" {
-                $MediaFile = [TagLib.File]::Create((Get-Item -Path $Path | Resolve-Path).ProviderPath);
+        try {
+            switch ($PSCmdlet.ParameterSetName) {
+                "Path" {
+                    $MediaFile = [TagLib.File]::Create((Get-Item -Path $Path));
+                }
+                "LiteralPath" {
+                    $MediaFile = [TagLib.File]::Create((Get-Item -LiteralPath $LiteralPath));
+                }
             }
-            "LiteralPath" {
-                $MediaFile = [TagLib.File]::Create($LiteralPath);
-            }
+        }
+        catch [System.Management.Automation.MethodInvocationException] {
+            throw [System.ArgumentOutOfRangeException] (
+                "Invalid file type"
+            );
         }
 
         Test-MediaFile -MediaFile $MediaFile -TestWritable $false;

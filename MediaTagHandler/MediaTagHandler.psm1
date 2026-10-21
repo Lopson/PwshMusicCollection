@@ -24,7 +24,8 @@ $ExportableClasses = @(
     'ValidExtensions',
     'ValidAudioExtensions',
     'ValidImageExtensions',
-    'Valid3LetterCountryCodes'
+    'Valid3LetterCountryCodes',
+    'ValidAudioMimeTypes'
 )
 
 foreach ($className in $ExportableClasses) {

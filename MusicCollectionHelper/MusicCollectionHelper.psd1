@@ -88,7 +88,9 @@ FunctionsToExport = @(
     'Remove-ReplayGainTags',
     'Set-MusicFileTrackCount',
     'Compress-DSDFile',
-    'Resize-AlbumImage'
+    'Resize-AlbumImage',
+    'Get-TridFileInfo',
+    'Test-IngestType'
 )
 
 # Cmdlets to export from this module, for best performance, do not use
