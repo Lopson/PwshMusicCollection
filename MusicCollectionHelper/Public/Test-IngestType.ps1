@@ -36,7 +36,19 @@ function Test-IngestType {
     # 
     # We can immediately bail out here because there's nothing else to check
     # and also because it makes the coding easier to manage.
-    [string]$isoPath = Get-ChildItem -LiteralPath $ingestFolder -Filter "*.iso";
+    [string[]]$isoFiles = Get-ChildItem -LiteralPath $ingestFolder -Filter "*.iso";
+    [string]$isoPath = $null;
+    if ($isoFiles.Count -gt 1) {
+        Write-Warning (
+            "More than one ISO file was found, which is not an approved " +
+            "album structure"
+        );
+        return [IngestType]::Invalid;
+    }
+    elseif ($isoFiles.Count -eq 1) {
+        $isoPath = $isoFiles[0];
+    }
+
     if ($isoPath) {
         # Test if the ISO is an actual DSD ISO.
         if (Test-ISOFile -LiteralPath $isoPath) {
@@ -55,7 +67,18 @@ function Test-IngestType {
     # The presence of a Cue doesn't automatically mean that it's a PCM folder
     # as DSD folders can also have one. No conclusions can be made just yet.
     # Do NOT validate the cue sheet here please, leave that to the caller.
-    [string]$cuePath = Get-ChildItem -LiteralPath $ingestFolder -Filter "*.cue";
+    [string[]]$cueFiles = Get-ChildItem -LiteralPath $ingestFolder -Filter "*.cue";
+    [string]$cuePath = $null;
+    if ($cueFiles.Count -gt 1) {
+        Write-Warning (
+            "More than one cue sheet was found, which is not an approved " +
+            "album structure"
+        );
+        return [IngestType]::Invalid;
+    }
+    elseif ($cueFiles.Count -eq 1) {
+        $cuePath = $cueFiles[0];
+    }
 
     # Check if all music files have the same extension.
     $musicExtensionsFound = [System.Collections.Generic.HashSet[string]]::new();
@@ -68,6 +91,7 @@ function Test-IngestType {
         }
     }
     if ($musicExtensionsFound.Count -gt 1) {
+        # If more than one music extension was detected.
         Write-Warning (
             "More than one music extension detected in folder, which makes it " +
             "impossible to determine the ingest type"
@@ -75,6 +99,7 @@ function Test-IngestType {
         return [IngestType]::Unknown;
     }
     elseif ($musicExtensionsFound.Count -eq 0) {
+        # If no music file extensions were detected.
         Write-Warning (
             "No files with music extensions were found in folder"
         );
@@ -89,15 +114,80 @@ function Test-IngestType {
     # Double-check that all audio files are of the same format by looking at
     # their internal metadata.
     $musicFilesInfo = $musicFiles | Get-TridFileInfo;
-
     $musicMimesFound = [System.Collections.Generic.HashSet[string]]::new();
-    foreach ($musicFileInfo in $musicFilesInfo) {
-        [Void]$musicMimesFound.Add($musicFileInfo."MIME type");
+    foreach ($musicFile in $musicFiles) {
+        $musicFileInfo = $musicFilesInfo | `
+            Where-Object {$_.File -eq $musicFile} | `
+            Sort-Object -Descending -Property "%";
+        
+        if ($musicFileInfo.Count -eq 0) {
+            # If a music file isn't in the list of TrID results.
+            Write-Warning (
+                "Music file $musicFile either wasn't processed by TrID or " +
+                "something went wrong with TrID"
+            );
+            return [IngestType]::Invalid;
+        }
+        
+        if (($musicFileInfo | Where-Object {$_."TrID-Score" -eq 0}).Count -gt 0) {
+            # If TrID was incapable of detecting a file's type.
+            Write-Warning (
+                "Type of file $musicFile was impossible to determine by TrID"
+            );
+            return [IngestType]::Unknown;
+        }
+    
+        $musicFileInfoTopResults = $musicFileInfo | `
+            Where-Object {$_."%" -eq $musicFileInfo[0]."%"}
+
+        if ($musicExtension -notin $musicFileInfoTopResults."Extension(s)") {
+            # If the folder's music file extension isn't in a file's
+            # list of TrID entries.
+            Write-Warning (
+                "Expected file extension $musicExtension was not determined " +
+                "as valid for the file $musicFile based on TrID's top " +
+                "results, which means the file likely has the wrong " +
+                "extension. TrID thinks the right extension would be one of " +
+                "the following: " +
+                $musicFileInfo."Extension(s)"
+            );
+            return [IngestType]::Invalid;
+        }
+
+        if ($musicExtension -notin $musicFileInfoTopResults."Extension(s)") {
+            # If the folder's music file extension isn't matched by
+            # the top result(s) in the list of TrID entries. Note that there
+            # may be more than one result with the same % value, hence the
+            # filtering taking place in the if condition.
+            Write-Warning (
+                "Expected file extension $musicExtension doesn't match " +
+                "any of TrID's top results' extensions for file $musicFile`: " +
+                $musicFileInfoTopResults."Extension(s)"
+            );
+            return [IngestType]::Unknown;
+        }
+
+        foreach ($musicFileInfoEntry in $musicFileInfoTopResults) {
+            # If any of the top TrID results for the current music file don't
+            # have an audio MIME type.
+            if ($musicFileInfoEntry."MIME type" -notin 
+                    [ValidAudioMimeTypes]::new().GetValidValues()) {
+                Write-Warning (
+                    "TrID's top results' for file $musicFile don't have an " +
+                    "audio MIME types; types detected were " +
+                    $musicFileInfoTopResults."MIME type"
+                );
+                return [IngestType]::Invalid;
+            }
+        }
+
+        [Void]$musicMimesFound.UnionWith($musicFileInfoTopResults."MIME type");
     }
     if ($musicMimesFound.Count -gt 1) {
         Write-Warning (
             "Music files have more than one MIME type, which makes it " +
-            "impossible to determine the ingest type"
+            "impossible to determine the ingest type: " +
+            $musicMimesFound
         );
         return [IngestType]::Unknown;
     }
@@ -108,15 +198,40 @@ function Test-IngestType {
         );
         return [IngestType]::Unknown;
     }
-    elseif ($musicMimesFound[0] -notin `
-            [ValidAudioMimeTypes]::new().GetValidValues()) {
-        Write-Warning (
-            "File(s) in folder with music file extensions don't have audio " +
-            "MIME types"
-        );
-        return [IngestType]::Invalid;
+
+    [string]$musicMimeType = $musicMimesFound[0];
+    [string]$isMusicPCM = $true;
+    
+    # Check if files are PCM or DSD.
+    if ($musicMimeType -in [ValidAudioMimeTypes]::new().GetDsdValues()) {
+        $isMusicPCM = $false;
     }
 
-    # Check if files are PCM or DSD.
-    # TODO get the MIME type of uncompressed dsf files please.
+    # If it's a single audio file with cue sheet, return an ingest type.
+    if ($musicFiles.Count -eq 1 -and $cuePath) {
+        switch ($isMusicPCM) {
+            $false { return [IngestType]::CueAlbumPCM; }
+            $true  { return [IngestType]::CueAlbumDSD; }
+        }
+    }
+    # If it's multiple audio files with cue sheet, return an ingest type.
+    elseif ($musicFiles.Count -gt 1 -and $cuePath) {
+        switch ($isMusicPCM) {
+            $false { return [IngestType]::CueMultiPCM; }
+            $true  { return [IngestType]::CueMultiDSD; }
+        }
+    }
+    elseif ($musicFiles.Count -ge 1) {
+        switch ($isMusicPCM) {
+            $false { return [IngestType]::FilePCM; }
+            $true  { return [IngestType]::FileDSD; }
+        }
+    }
+    else {
+        Write-Warning (
+            "All detection methods have been attempted, yet it was " +
+            "impossible to determine the ingest type"
+        );
+        return [IngestType]::Unknown;
+    }
 }

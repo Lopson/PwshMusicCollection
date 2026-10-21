@@ -91,7 +91,8 @@ function Get-TridFileInfo {
                 );
             }
 
-            $csvEntry."Extension(s)" = $csvEntry."Extension(s)" -split "/";
+            [string[]]$csvEntry."Extension(s)" = $csvEntry."Extension(s)" -split "/" | `
+                ForEach-Object {$_.ToLower()};
         }
         
         [Void]$result.Add($tridCsv);

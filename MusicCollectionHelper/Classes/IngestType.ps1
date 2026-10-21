@@ -3,4 +3,10 @@ enum IngestType {
     Unknown
     Iso
     IsoDsd
+    CueAlbumPCM
+    CueAlbumDSD
+    CueMultiPCM
+    CueMultiDSD
+    FilePCM
+    FileDSD
 }
