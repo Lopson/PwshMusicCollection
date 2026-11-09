@@ -1,6 +1,6 @@
 function Test-IngestType {
     # NOTE Consider making this pipeline-capable.
-    [OutputType([IngestType])]
+    [OutputType([IngestInformation])]
     [CmdletBinding(DefaultParameterSetName = "NoPath")]
     param (
         [Parameter(ParameterSetName = "Path")]
@@ -19,6 +19,8 @@ function Test-IngestType {
         [ValidateNotNullOrWhiteSpace()]
         [string]$LiteralPath
     )
+    [IngestInformation]$result = [IngestInformation]::new();
+    
     # Get the folder we want to analyze.
     [string]$ingestFolder = $null;
     switch ($PSCmdlet.ParameterSetName) {
@@ -43,7 +45,8 @@ function Test-IngestType {
             "More than one ISO file was found, which is not an approved " +
             "album structure"
         );
-        return [IngestType]::Invalid;
+        $result.IngestType = [IngestType]::Invalid;
+        return $result;
     }
     elseif ($isoFiles.Count -eq 1) {
         $isoPath = $isoFiles[0];
@@ -52,10 +55,15 @@ function Test-IngestType {
     if ($isoPath) {
         # Test if the ISO is an actual DSD ISO.
         if (Test-ISOFile -LiteralPath $isoPath) {
-            return [IngestType]::IsoDsd;
+            
+            $result.IngestType = [IngestType]::IsoDsd;
+            $result.IsoFile = $isoPath;
+            return $result;
         }
-        else{
-            return [IngestType]::Iso;
+        else {
+            $result.IngestType = [IngestType]::Iso;
+            $result.IsoFile = $isoPath;
+            return $result;
         }
     }
 
@@ -74,7 +82,8 @@ function Test-IngestType {
             "More than one cue sheet was found, which is not an approved " +
             "album structure"
         );
-        return [IngestType]::Invalid;
+        $result.IngestType = [IngestType]::Invalid;
+        return $result;
     }
     elseif ($cueFiles.Count -eq 1) {
         $cuePath = $cueFiles[0];
@@ -99,14 +108,16 @@ function Test-IngestType {
             "More than one music extension detected in folder, which makes it " +
             "impossible to determine the ingest type"
         );
-        return [IngestType]::Unknown;
+        $result.IngestType = [IngestType]::Unknown;
+        return $result;
     }
     elseif ($musicExtensionsFound.Count -eq 0) {
         # If no music file extensions were detected.
         Write-Warning (
             "No files with music extensions were found in folder"
         );
-        return [IngestType]::Invalid;
+        $result.IngestType = [IngestType]::Invalid;
+        return $result;
     }
 
     [string]$musicExtension = $musicExtensionsFound[0]; # Has no dot.
@@ -129,7 +140,8 @@ function Test-IngestType {
                 "Music file $musicFile either wasn't processed by TrID or " +
                 "something went wrong with TrID"
             );
-            return [IngestType]::Invalid;
+            $result.IngestType = [IngestType]::Invalid;
+            return $result;
         }
         
         if (($musicFileInfo | Where-Object {$_."TrID-Score" -eq 0}).Count -gt 0) {
@@ -137,7 +149,8 @@ function Test-IngestType {
             Write-Warning (
                 "Type of file $musicFile was impossible to determine by TrID"
             );
-            return [IngestType]::Unknown;
+            $result.IngestType = [IngestType]::Unknown;
+            return $result;
         }
     
         $musicFileInfoTopResults = $musicFileInfo | `
@@ -154,7 +167,8 @@ function Test-IngestType {
                 "the following: " +
                 $musicFileInfo."Extension(s)"
             );
-            return [IngestType]::Invalid;
+            $result.IngestType = [IngestType]::Invalid;
+            return $result;
         }
 
         if ($musicExtension -notin $musicFileInfoTopResults."Extension(s)") {
@@ -167,7 +181,8 @@ function Test-IngestType {
                 "any of TrID's top results' extensions for file $musicFile`: " +
                 $musicFileInfoTopResults."Extension(s)"
             );
-            return [IngestType]::Unknown;
+            $result.IngestType = [IngestType]::Unknown;
+            return $result;
         }
 
         foreach ($musicFileInfoEntry in $musicFileInfoTopResults) {
@@ -180,7 +195,8 @@ function Test-IngestType {
                     "audio MIME types; types detected were " +
                     $musicFileInfoTopResults."MIME type"
                 );
-                return [IngestType]::Invalid;
+                $result.IngestType = [IngestType]::Invalid;
+                return $result;
             }
         }
 
@@ -193,14 +209,16 @@ function Test-IngestType {
             "impossible to determine the ingest type: " +
             $musicMimesFound
         );
-        return [IngestType]::Unknown;
+        $result.IngestType = [IngestType]::Unknown;
+        return $result;
     }
     elseif ($musicMimesFound.Count -lt 0) {
         Write-Warning (
             "File(s) in folder with music file extensions don't have a " +
             "MIME type, making it impossible to determine the ingest type"
         );
-        return [IngestType]::Unknown;
+        $result.IngestType = [IngestType]::Unknown;
+        return $result;
     }
 
     [string]$musicMimeType = $musicMimesFound[0];
@@ -213,29 +231,51 @@ function Test-IngestType {
 
     # If it's a single audio file with cue sheet, return an ingest type.
     if ($musicFiles.Count -eq 1 -and $cuePath) {
+        $result.MusicExtension = $musicExtension;
+        $result.MusicMimeType = $musicMimeType;
+        $result.MusicFiles = $musicFiles;
+        $result.CueFile = $cuePath;
+
         switch ($isMusicPCM) {
-            $true  { return [IngestType]::CueAlbumPCM; }
-            $false { return [IngestType]::CueAlbumDSD; }
+            $true  { $result.IngestType = [IngestType]::CueAlbumPCM; }
+            $false { $result.IngestType = [IngestType]::CueAlbumDSD; }
         }
+
+        return $result;
     }
     # If it's multiple audio files with cue sheet, return an ingest type.
     elseif ($musicFiles.Count -gt 1 -and $cuePath) {
+        $result.MusicExtension = $musicExtension;
+        $result.MusicMimeType = $musicMimeType;
+        $result.MusicFiles = $musicFiles;
+        $result.CueFile = $cuePath;
+
         switch ($isMusicPCM) {
-            $true  { return [IngestType]::CueMultiPCM; }
-            $false { return [IngestType]::CueMultiDSD; }
+            $true  { $result.IngestType = [IngestType]::CueMultiPCM; }
+            $false { $result.IngestType = [IngestType]::CueMultiDSD; }
         }
+
+        return $result;
     }
+    # If it's one or multiple audio files without a cue sheet.
     elseif ($musicFiles.Count -ge 1) {
+        $result.MusicExtension = $musicExtension;
+        $result.MusicMimeType = $musicMimeType;
+        $result.MusicFiles = $musicFiles;
+
         switch ($isMusicPCM) {
-            $true  { return [IngestType]::FilePCM; }
-            $false { return [IngestType]::FileDSD; }
+            $true  { $result.IngestType = [IngestType]::FilePCM; }
+            $false { $result.IngestType = [IngestType]::FileDSD; }
         }
+
+        return $result;
     }
     else {
         Write-Warning (
             "All detection methods have been attempted, yet it was " +
             "impossible to determine the ingest type"
         );
-        return [IngestType]::Unknown;
+        $result.IngestType = [IngestType]::Unknown;
+        return $result;
     }
 }

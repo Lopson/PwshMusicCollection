@@ -98,6 +98,6 @@ function Get-TridFileInfo {
         [Void]$result.Add($tridCsv);
     }
     end {
-        return $result;
+        return $result.ToArray();
     }
 }
