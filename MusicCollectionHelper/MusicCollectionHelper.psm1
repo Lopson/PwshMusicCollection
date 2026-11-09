@@ -20,7 +20,8 @@ foreach ($class in (
 # Declare the types via Type Accelerators so that public functions can rely on them.
 # Source: https://synedgy.com/powershell-modules-exporting-classes/
 $ExportableClasses = @(
-    'IngestType'
+    'IngestType',
+    'IngestInformation'
 )
 
 foreach ($className in $ExportableClasses) {

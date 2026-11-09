@@ -1,5 +1,5 @@
 function Test-MusicFileTags {
-    [OutputType([void])]
+    [OutputType([bool[]])]
     [CmdletBinding(DefaultParameterSetName = "Path")]
     param (
         [Parameter(Mandatory = $true,
@@ -26,7 +26,12 @@ function Test-MusicFileTags {
         [ValidateNotNullOrEmpty()]
         [string]$LiteralPath
     )
+    begin {
+        $result = [System.Collections.ArrayList]@();
+    }
     process {
+        [bool]$itemResult = $true;
+
         switch ($PSCmdlet.ParameterSetName) {
             "Path" {
                 $MusicFile = Get-MediaFile -Path $Path;
@@ -43,6 +48,7 @@ function Test-MusicFileTags {
             -MediaTag "Genres";
         if (-not $tagValue -or ($tagValue.Length -le 0)) {
             Write-Warning ("File $MusicFilePath, Genre tag is empty");
+            $itemResult = $false;
         }
 
         # Test the standard release year tag.
@@ -50,6 +56,7 @@ function Test-MusicFileTags {
         [datetime]$yearTagDateTime = New-Object datetime;
         if ([string]::IsNullOrWhiteSpace($tagValue)) {
             Write-Warning ("File $MusicFilePath, release year tag is empty");
+            $itemResult = $false;
         }
         elseif (-not ([datetime]::TryParseExact(
                     $tagValue,
@@ -60,6 +67,7 @@ function Test-MusicFileTags {
             Write-Warning (
                 "File $MusicFilePath, release year tag doesn't contain a " +
                 "number or contains an invalid year number");
+            $itemResult = $false;
         }
 
         # If Xiph tags are present, test that release year tag too.
@@ -78,6 +86,7 @@ function Test-MusicFileTags {
                 Write-Warning (
                     "File $MusicFilePath, Xiph-specific release year tag " +
                     "is set and contains an invalid year number");
+                $itemResult = $false;
             }
         }
 
@@ -86,16 +95,19 @@ function Test-MusicFileTags {
             -MediaTag "MusicBrainzReleaseCountry";
         if ([string]::IsNullOrWhiteSpace($tagValue)) {
             Write-Warning ("File $MusicFilePath, release country tag is empty");
+            $itemResult = $false;
         }
         elseif ($tagValue -notin [Valid3LetterCountryCodes]::new().GetValidValues()) {
             if (($tagValue -split ",").Length -eq 2) {
                 Write-Warning ("File $MusicFilePath, possible old-format " +
                     "country tag found, consider replacing it with a " +
                     "3-letter country code");
+                $itemResult = $false;
             }
             else {
                 Write-Warning ("File $MusicFilePath, release country tag is " +
                     "not a valid 3-letter code");
+                $itemResult = $false;
             }
         }
 
@@ -103,6 +115,7 @@ function Test-MusicFileTags {
         $tagValue = Get-MediaFileTag -MediaFile $MusicFile -MediaTag "Album";
         if ([string]::IsNullOrWhiteSpace($tagValue)) {
             Write-Warning ("File $MusicFilePath, album title tag is empty");
+            $itemResult = $false;
         }
 
         # Test the "AlbumArtists" and "Performers" tag.
@@ -122,6 +135,7 @@ function Test-MusicFileTags {
         if (-not $artistsTagged) {
             Write-Warning (
                 "File $MusicFilePath, album performer tag is empty");
+            $itemResult = $false;
         }
 
         # Files may have a Xiph tag named "ALBUM ARTIST" with a space.
@@ -137,6 +151,7 @@ function Test-MusicFileTags {
                     "File $MusicFilePath, Xiph-specific album artist(s) tag " +
                     "is set and contains a different value from that of the " +
                     "typical ALBUMARTIST tag");
+                $itemResult = $false;
             }
         }
 
@@ -154,7 +169,8 @@ function Test-MusicFileTags {
         }
         if ($replayTags -and $replayTags.Length -gt 0) {
             Write-Warning "File $MusicFilePath, ReplayGain tags detected: $(`
-            $replayTags -join ", ")";
+                $replayTags -join ", ")";
+            $itemResult = $false;
         }
 
         # Test the number of discs fields.
@@ -166,22 +182,27 @@ function Test-MusicFileTags {
         if ($discCount -and $discCount -le 0) {
             Write-Warning ("File $MusicFilePath, disc count field has " +
                 "an invalid value of $discCount");
+            $itemResult = $false;
         }
         if ($discNumber -and $discNumber -le 0) {
             Write-Warning ("File $MusicFilePath, disc number field has " +
                 "an invalid value of $discNumber");
+            $itemResult = $false;
         }
         if ($discNumber -and -not $discCount) {
             Write-Warning ("File $MusicFilePath, disc number set but " +
                 "no disc count value present");
+            $itemResult = $false;
         }
         if ($discCount -and -not $discNumber) {
             Write-Warning ("File $MusicFilePath, disc count set but " +
                 "no disc number present");
+            $itemResult = $false;
         }
         if ($discNumber -and $discCount -eq 1) {
             Write-Warning ("File $MusicFilePath, disc number and count " +
                 "set but unnecessary as disc total is 1");
+            $itemResult = $false;
         }
         if (Test-MediaFileTagType -MediaFile $MusicFile `
                 -MediaTagType "Xiph") {
@@ -191,6 +212,7 @@ function Test-MusicFileTags {
             if (-not $discCount -and $xiphDiscCount) {
                 Write-Warning ("File $MusicFilePath, disc count tag not set " +
                     "but corresponding Xiph tag is set to $xiphDiscCount");
+                $itemResult = $false;
             }
         }
 
@@ -198,9 +220,14 @@ function Test-MusicFileTags {
         $tagValue = Get-MediaFileTag -MediaFile $MusicFile -MediaTag "TrackCount";
         if (-not $tagValue) {
             Write-Warning "File $MusicFilePath, no track count value found";
+            $itemResult = $false;
         }
         elseif ($tagValue -le 0) {
             Write-Warning "File $MusicFilePath, track count value invalid ";
+            $itemResult = $false;
         }
+    }
+    end {
+        return $result.ToArray();
     }
 }

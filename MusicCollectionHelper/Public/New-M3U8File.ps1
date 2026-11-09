@@ -4,16 +4,16 @@ function New-M3U8File {
     param (
         [Parameter(ParameterSetName = "Path")]
         [ValidateScript({
-                Test-Path -Path (Split-Path -Path $_) -PathType "Container"; },
-            ErrorMessage = "Parent of path `"{0}`" doesn't seem to exist."
+                Test-Path -Path $_ -PathType "Container"; },
+            ErrorMessage = "Path `"{0}`" doesn't seem to exist."
         )]
         [ValidateNotNullOrWhiteSpace()]
         [string]$Path,
         
         [Parameter(ParameterSetName = "LiteralPath")]
         [ValidateScript({
-                Test-Path -LiteralPath (Split-Path -LiteralPath $_) -PathType "Container"; },
-            ErrorMessage = "Parent of Literal Path `"{0}`" doesn't seem to exist."
+                Test-Path -LiteralPath $_ -PathType "Container"; },
+            ErrorMessage = "Literal Path `"{0}`" doesn't seem to exist."
         )]
         [ValidateNotNullOrWhiteSpace()]
         [string]$LiteralPath,
@@ -31,8 +31,8 @@ function New-M3U8File {
     # Get the M3U8 file's folder first.
     [string]$M3U8Folder = $null;
     switch ($PSCmdlet.ParameterSetName) {
-        "Path"        { $M3U8Folder = (Split-Path -Path $Path); }
-        "LiteralPath" { $M3U8Folder = (Split-Path -LiteralPath $LiteralPath); }
+        "Path"        { $M3U8Folder = Get-Item -Path $Path; }
+        "LiteralPath" { $M3U8Folder = Get-Item -LiteralPath $LiteralPath; }
         "NoPath"      { $M3U8Folder = (Get-Location).Path; }
     }
 
